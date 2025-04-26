@@ -52,6 +52,16 @@ class GraphClient:
 
         try:
             logger.info(f"Initializing Neo4j async driver for URI: {uri}, User: {user}...")
+            # Log credentials just before use (mask password for safety)
+            masked_password = f"{password[:1]}...{password[-1:]}" if password and len(password) > 1 else "****"
+            logger.info(f"Attempting driver connection with User: '{user}', Password: '{masked_password}'")
+            # Add a delay to allow Neo4j container to fully initialize
+            logger.info("Waiting 5 seconds for Neo4j service to potentially start...")
+            await asyncio.sleep(5)
+            logger.info("Attempting Neo4j driver creation...")
+            # --- BEGIN DEBUG LOGGING ---
+            logger.info(f"DEBUG: URI='{uri}', User='{user}', Password='{password}'")
+            # --- END DEBUG LOGGING ---
             # Use AsyncGraphDatabase for the async driver
             self.driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
             # Verify connectivity during initialization

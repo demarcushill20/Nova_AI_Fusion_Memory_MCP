@@ -93,6 +93,12 @@
 - **Related Architectural Components:** Embedding Service (`app/services/embedding_service.py`).
 - **Relevant Research/Planning Notes:** `RESEARCH2.md` (Section 5), `ARCHITECTURE.md` (Section 5.6).
 - **Acceptance Criteria:** Service can generate embeddings for given text using OpenAI. Caching is functional.
+- **Test Status:**
+  - Test Creation Date: 2025-04-20 (Developer Agent)
+  - Test Execution Date: 2025-04-20
+  - Test Results: ✅ PASSED (tests/test_embedding_service.py)
+  - Debugging Activities: None needed.
+  - Resolution Details: N/A
 
 ---
 
@@ -111,6 +117,12 @@
 - **Related Architectural Components:** Pinecone Client (`app/services/pinecone_client.py`).
 - **Relevant Research/Planning Notes:** `RESEARCH2.md` (Section 6), `PLANNING.md` (Section: Configuration), `ARCHITECTURE.md` (Section 5.4).
 - **Acceptance Criteria:** Service can connect to Pinecone, perform upsert, query, delete operations, and check connection status.
+- **Test Status:**
+  - Test Creation Date: 2025-04-20 (Developer Agent)
+  - Test Execution Date: 2025-04-20
+  - Test Results: ✅ PASSED (tests/test_pinecone_client_integration.py)
+  - Debugging Activities: Updated Pinecone package name in requirements.txt; Corrected index listing logic in pinecone_client.py; Increased indexing delay in integration test.
+  - Resolution Details: Test passed after applying fixes and increasing delay.
 
 ---
 

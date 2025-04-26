@@ -11,8 +11,9 @@ except ImportError:
     # For now, re-raise to make the issue clear during development
     raise
 
-# Import API routers
+# Import API routers and the shared service instance
 from .api import memory_routes
+from .api.memory_routes import memory_service_instance # Import the shared instance
 
 logger = logging.getLogger(__name__)
 
@@ -25,18 +26,23 @@ async def lifespan(app: FastAPI):
     print("--- Starting Application ---")
     logger.info("Application startup: Initializing resources...")
 
-    # Placeholder: Initialize database connections, load models, etc.
-    # Example: await initialize_database_connections()
-    # Example: await load_machine_learning_models()
-    # These will be implemented in detail within service modules later (T7, T8, T9)
+    # Initialize the shared MemoryService instance
+    logger.info("Initializing shared MemoryService...")
+    await memory_service_instance.initialize()
+    logger.info("Shared MemoryService initialized.")
 
-    print("--- Application Resources Initialized (Placeholders) ---")
+    # Remove the placeholder print now that real initialization happens
+    # print("--- Application Resources Initialized (Placeholders) ---")
+
     yield # Application runs here
+
     print("--- Shutting Down Application ---")
     logger.info("Application shutdown: Cleaning up resources...")
 
-    # Placeholder: Clean up resources, close connections
-    # Example: await close_database_connections()
+    # Close the shared MemoryService instance resources
+    logger.info("Closing shared MemoryService resources...")
+    await memory_service_instance.close()
+    logger.info("Shared MemoryService resources closed.")
 
     print("--- Application Shutdown Complete ---")
 

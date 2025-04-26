@@ -83,7 +83,7 @@ async def run_pinecone_integration_test():
         return
     print("Test 3 PASSED ✅")
     logger.info("Waiting briefly for indexing...")
-    await asyncio.sleep(3) # Allow time for Pinecone to index
+    await asyncio.sleep(10) # Allow more time for Pinecone to index
 
     # --- Test 4: Query ---
     logger.info(f"\n[Test 4] Querying for vector similar to ID: {test_id}...")

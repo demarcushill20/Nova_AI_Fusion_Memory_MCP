@@ -1,7 +1,7 @@
 # Environment variables for Nova AI Memory MCP Server
 
 # OpenAI Configuration
-OPENAI_API_KEY=
+OPENAI_API_KEY="sk-..."
 
 # Pinecone Configuration
 PINECONE_API_KEY="..."

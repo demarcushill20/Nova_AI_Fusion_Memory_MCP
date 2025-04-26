@@ -64,32 +64,50 @@ The server is built using FastAPI and follows a layered architecture:
         -   `PINECONE_ENV`: Your Pinecone environment (e.g., `us-west1-gcp`).
         -   `NEO4J_PASSWORD`: The password for your Neo4j database user.
         -   *(Optional)* Adjust `PINECONE_INDEX`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_DATABASE` if they differ from the defaults.
+        -   **Important `NEO4J_URI` Note:** When running the server directly with Uvicorn (outside of Docker), ensure `NEO4J_URI` is set to `bolt://localhost:7687` in your `.env` file. If running via `docker-compose`, it should typically be `bolt://neo4j:7687`.
 
 5.  **Ensure Neo4j is Running:**
-    -   If using Docker locally (recommended for development), you might use a `docker-compose.yml` (Task T16 will create this) or run Neo4j manually:
+    -   If using Docker locally (recommended for development), you can use the provided `docker-compose.yml`:
+        ```bash
+        docker-compose up -d neo4j # Start only the Neo4j service
+        ```
+        Or run Neo4j manually (ensure the password matches your `.env` file):
         ```bash
         docker run --rm -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/<your_neo4j_password> neo4j:latest
         ```
-        *(Replace `<your_neo4j_password>` with the password set in your `.env` file)*.
-    -   Ensure the `NEO4J_URI` in your `.env` file points to the correct Bolt URL (e.g., `bolt://localhost:7687`).
+    -   Verify Neo4j is accessible, typically via `http://localhost:7474`.
 
 ## 4. Running the Server
 
-Once the setup is complete, you can run the FastAPI server using Uvicorn:
+Once the setup is complete, you have two main options:
+
+**Option 1: Using Docker Compose (Recommended)**
+
+This handles dependencies and networking automatically.
 
 ```bash
-uvicorn app.main:app --reload --port 8000
+docker-compose up mcp-server # Starts the server and Neo4j if not running
 ```
 
--   `--reload`: Enables auto-reloading when code changes (useful for development).
--   `--port 8000`: Specifies the port to run on (default is 8000).
+**Option 2: Using Uvicorn Directly (for Development/Debugging)**
 
-The server will start, and you should see output indicating it's running, including the initialization status of Pinecone, Neo4j, and the Reranker.
+Ensure you are in the project's root directory in your terminal.
 
-You can access the automatically generated API documentation:
+```powershell
+# Ensure Neo4j URI is set correctly for direct execution (PowerShell example)
+$env:NEO4J_URI='bolt://localhost:7687'; uvicorn app.main:app --port 8001
+```
 
--   **Swagger UI:** `http://localhost:8000/docs`
--   **ReDoc:** `http://localhost:8000/redoc`
+-   **Environment Variable:** Setting `$env:NEO4J_URI='bolt://localhost:7687';` before the `uvicorn` command ensures the application connects to Neo4j running on the host machine. This might be necessary if the `.env` file setting isn't picked up correctly by the Uvicorn process, especially when using reloaders.
+-   `--port 8001`: Specifies the port. We use 8001 here as an example; you might need to use a different port if 8000 or 8001 is already in use.
+-   `--reload`: You can add `--reload` for auto-reloading during development (`uvicorn app.main:app --reload --port 8001`), but be aware that environment variable inheritance with reloaders can sometimes be tricky. If you encounter connection issues with `--reload`, try running without it first.
+
+The server will start, and you should see output indicating it's running and initializing components.
+
+You can access the automatically generated API documentation (adjust port if needed):
+
+-   **Swagger UI:** `http://localhost:8001/docs`
+-   **ReDoc:** `http://localhost:8001/redoc`
 
 ## 5. API Endpoints
 
@@ -125,7 +143,7 @@ import requests
 import json
 
 # Base URL of the running MCP server
-MCP_SERVER_URL = "http://localhost:8000" # Adjust if running elsewhere
+MCP_SERVER_URL = "http://localhost:8001" # Adjust port if you used a different one
 
 def query_memory(query_text: str):
     """Sends a query to the MCP server."""

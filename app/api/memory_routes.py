@@ -72,7 +72,24 @@ async def query_memory(
         # Convert results to MemoryItem models if needed (assuming perform_query returns dicts matching the model)
         # If perform_query already returns Pydantic models, this conversion isn't needed.
         # Assuming perform_query returns list of dicts for now:
-        response_results = [MemoryItem(**res) for res in results]
+        # Map the result dictionary fields to the MemoryItem model fields
+        response_results = []
+        for res in results:
+            # Prioritize 'rerank_score', fall back to 'fusion_score' or 0.0 if missing
+            score_value = res.get('rerank_score', res.get('fusion_score', 0.0))
+            try:
+                item = MemoryItem(
+                    id=res.get('id', 'unknown_id'),
+                    text=res.get('text', ''),
+                    source=res.get('source', 'unknown'),
+                    score=float(score_value), # Use the determined score
+                    metadata=res.get('metadata')
+                )
+                response_results.append(item)
+            except Exception as item_exc:
+                 # Log if a specific item fails validation, but continue processing others
+                 logger.error(f"Failed to validate MemoryItem for result ID {res.get('id', 'N/A')}: {item_exc}", exc_info=True)
+
         return QueryResponse(results=response_results)
     except Exception as e:
         logger.error(f"❌ Error during /query endpoint execution: {e}", exc_info=True)

@@ -52,12 +52,15 @@ class MemoryService:
 
         logger.info("Starting asynchronous initialization of MemoryService...")
         init_tasks = {
-            "pinecone": self.pinecone_client.initialize(),
+            # Run the synchronous pinecone init in a separate thread
+            "pinecone": asyncio.to_thread(self.pinecone_client.initialize),
             "graph": self.graph_client.initialize(),
             "reranker": self._load_reranker_model() # Separate method for reranker loading
         }
 
+        logger.info("Attempting to gather initialization tasks: Pinecone, Graph, Reranker...")
         results = await asyncio.gather(*init_tasks.values(), return_exceptions=True)
+        logger.info("Initialization tasks gathered (may include exceptions).")
 
         # Check results
         pinecone_ok = isinstance(results[0], bool) and results[0]
@@ -74,10 +77,15 @@ class MemoryService:
         else:
              self._reranker_loaded = True
 
-        # Service is considered initialized even if some components failed,
-        # but operations requiring failed components will not work.
-        self._initialized = True
-        logger.info(f"MemoryService initialization complete. Status - Pinecone: {'OK' if pinecone_ok else 'Failed'}, Graph: {'OK' if graph_ok else 'Failed'}, Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}")
+        # Service is only initialized if critical components (Pinecone, Graph) succeed.
+        if pinecone_ok and graph_ok:
+            self._initialized = True
+            logger.info(f"MemoryService initialization complete. Status - Pinecone: OK, Graph: OK, Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}")
+        else:
+            self._initialized = False # Explicitly set to False
+            logger.error(f"MemoryService initialization FAILED. Status - Pinecone: {'OK' if pinecone_ok else 'Failed'}, Graph: {'OK' if graph_ok else 'Failed'}, Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}")
+            # Optionally, raise an exception here to halt FastAPI startup if critical components fail
+            # raise RuntimeError("Failed to initialize critical MemoryService components (Pinecone or Graph).")
 
     async def _load_reranker_model(self) -> bool:
         """Loads the reranker model asynchronously."""
@@ -145,7 +153,7 @@ class MemoryService:
             # We always retrieve from both as per plan, regardless of routing_mode
             logger.debug(f"Initiating parallel retrieval (Vector k={top_k_vector}, Graph k={top_k_vector})...") # Graph k is indicative
             results = await asyncio.gather(
-                self.pinecone_client.query_vector(query_embedding, top_k=top_k_vector),
+                asyncio.to_thread(self.pinecone_client.query_vector, query_embedding, top_k=top_k_vector), # Wrap sync call
                 self.graph_client.query_graph(query_text, top_k=top_k_vector), # Pass query_text for potential graph search strategies
                 return_exceptions=True
             )

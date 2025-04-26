@@ -37,6 +37,9 @@ async def run_graph_integration_test():
         print("Skipping Neo4j integration test: NEO4J_PASSWORD not set in .env")
         return
 
+    # --- Print the URI being used ---
+    logger.info(f"Attempting to use Neo4j URI from settings: {settings.NEO4J_URI}")
+    # ---
     client = GraphClient()
 
     # --- Test 1: Initialization and Constraint Check ---

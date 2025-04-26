@@ -27,8 +27,8 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-ada-002"
 
     class Config:
-        # Load environment variables from a .env file if it exists
-        env_file = ".env"
+        # Environment variables are loaded by Docker Compose via env_file in docker-compose.yml
+        # Pydantic will automatically pick up environment variables without needing env_file here.
         env_file_encoding = 'utf-8'
         # Allow extra fields if needed, though we define all expected ones
         extra = 'ignore'

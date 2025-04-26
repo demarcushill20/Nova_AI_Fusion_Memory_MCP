@@ -43,7 +43,10 @@ class PineconeClient:
             pc = pinecone.Pinecone(api_key=settings.PINECONE_API_KEY, environment=settings.PINECONE_ENV)
 
             # Check if index exists
-            if self.index_name not in pc.list_indexes().names:
+            # Get index names from the IndexList object
+            index_list = pc.list_indexes()
+            existing_index_names = [index.name for index in index_list.indexes] if index_list and index_list.indexes else []
+            if self.index_name not in existing_index_names:
                 logger.warning(f"Pinecone index '{self.index_name}' not found. Attempting to create...")
                 pc.create_index(
                     name=self.index_name,

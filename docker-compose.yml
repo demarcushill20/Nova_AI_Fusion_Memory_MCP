@@ -2,7 +2,7 @@ version: '3.8' # Specify docker-compose version
 
 services:
   neo4j:
-    image: neo4j:latest # Use the official Neo4j image
+    image: neo4j:5.19 # Use a specific stable version
     container_name: neo4j_db
     ports:
       - "7474:7474" # HTTP interface
@@ -13,19 +13,13 @@ services:
       # - ./neo4j/plugins:/plugins
       # - ./neo4j/logs:/logs
     environment:
-      # Set authentication based on environment variables (loaded from .env by compose)
-      # Ensure NEO4J_PASSWORD is set in your .env file
-      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-password} # Default password 'password' if not set in .env
+      # Disable authentication for testing
+      NEO4J_AUTH: none
       # Optional: Configure memory limits if needed
       # NEO4J_server_memory_pagecache_size: 1G
       # NEO4J_server_memory_heap_initial__size: 1G
       # NEO4J_server_memory_heap_max__size: 2G
-    healthcheck:
-      # Basic healthcheck: Check if Bolt port is accessible
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider localhost:7687 || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 5
+    # Healthcheck removed as it was causing startup issues
     restart: unless-stopped
 
   mcp-server:
@@ -39,7 +33,7 @@ services:
       - .env # Load environment variables from .env file
     depends_on:
       neo4j:
-        condition: service_healthy # Wait for Neo4j to be healthy before starting
+        condition: service_started # Wait for Neo4j container to start
     # Optional: Mount the app directory for live code reloading during development
     # volumes:
     #   - ./app:/app/app

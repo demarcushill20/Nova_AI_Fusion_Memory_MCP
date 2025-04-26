@@ -21,6 +21,8 @@ RUN python -m pip install --upgrade pip && \
 
 # Copy the application code into the container
 COPY ./app ./app/
+# Copy the tests directory
+COPY ./tests ./tests/
 # Copy other necessary files like the example env file to the WORKDIR
 COPY .env.example .
 
