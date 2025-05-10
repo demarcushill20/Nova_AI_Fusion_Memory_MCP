@@ -86,6 +86,8 @@ class MemoryService:
             logger.error(f"MemoryService initialization FAILED. Status - Pinecone: {'OK' if pinecone_ok else 'Failed'}, Graph: {'OK' if graph_ok else 'Failed'}, Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}")
             # Optionally, raise an exception here to halt FastAPI startup if critical components fail
             # raise RuntimeError("Failed to initialize critical MemoryService components (Pinecone or Graph).")
+        
+        return self._initialized # Explicitly return the final status
 
     async def _load_reranker_model(self) -> bool:
         """Loads the reranker model asynchronously."""

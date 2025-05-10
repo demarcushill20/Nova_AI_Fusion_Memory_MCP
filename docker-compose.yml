@@ -3,7 +3,7 @@ version: '3.8' # Specify docker-compose version
 services:
   neo4j:
     image: neo4j:5.19 # Use a specific stable version
-    container_name: neo4j_db
+    container_name: nova_neo4j_db # Renamed container to avoid conflicts
     ports:
       - "7474:7474" # HTTP interface
       - "7687:7687" # Bolt interface (for driver connection)
@@ -21,23 +21,40 @@ services:
       # NEO4J_server_memory_heap_max__size: 2G
     # Healthcheck removed as it was causing startup issues
     restart: unless-stopped
+    networks:
+      nova_network:
+        aliases:
+          - neo4j_db
 
-  mcp-server:
+  # Combined MCP Server (using mcp-python-sdk)
+  # This service now directly handles MCP communication via stdio
+  nova-memory:
+    image: nova-memory-mcp_mcp-server:latest # Use the explicitly tagged image
     build:
-      context: . # Build from the Dockerfile in the current directory
-      dockerfile: Dockerfile
-    container_name: nova_mcp_server
-    ports:
-      - "8000:8000" # Map host port 8000 to container port 8000
+      context: .
+      dockerfile: Dockerfile # Uses the updated Dockerfile running mcp_server.py
+    container_name: nova_mcp_server # Keep container name consistent for now
+    stdin_open: true # Keep STDIN open for the MCP SDK server
     env_file:
-      - .env # Load environment variables from .env file
-    depends_on:
+      - .env # Load environment variables for mcp_server.py (API keys etc.)
+    # No RUNTIME_MODE needed
+    # No ports needed for stdio MCP
+    depends_on: # Still depends on Neo4j being ready
       neo4j:
-        condition: service_started # Wait for Neo4j container to start
-    # Optional: Mount the app directory for live code reloading during development
-    # volumes:
-    #   - ./app:/app/app
+        condition: service_started
     restart: unless-stopped
+    # Keep the profile so it's not started by default `docker-compose up`
+    profiles:
+      - mcp
+    networks:
+      nova_network:
+        aliases:
+          - nova_memory_mcp # Alias for potential internal communication if needed
+
+# Define networks for container communication
+networks:
+  nova_network:
+    driver: bridge
 
 volumes:
   neo4j_data: # Define the named volume for Neo4j data persistence

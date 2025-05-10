@@ -1,0 +1,79 @@
+{
+  "mcpServers": {
+    "nova-memory": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network=nova-memory-mcp_nova_network",
+        "--env-file",
+        "c:/path/to/your/nova-memory-mcp/.env",
+        "nova-memory-mcp_mcp-server:latest"
+      ],
+      "cwd": "c:/path/to/your/nova-memory-mcp",
+      "transportType": "stdio",
+      "disabled": false,
+      "autoApprove": [],
+      "alwaysAllow": [
+        "query_memory",
+        "upsert_memory",
+        "delete_memory",
+        "check_health"
+      ],
+      "tools": [
+        {
+          "name": "query_memory",
+          "description": "Query the memory system",
+          "path": "/memory/query",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {"title": "Query", "type": "string"}
+            },
+            "required": ["query"],
+            "title": "query_memoryArguments"
+          }
+        },
+        {
+          "name": "check_health",
+          "description": "Check the health of the memory system",
+          "path": "/memory/health",
+          "inputSchema": {
+            "type": "object",
+            "properties": {},
+            "title": "check_healthArguments"
+          }
+        },
+        {
+          "name": "upsert_memory",
+          "description": "Add or update a memory item",
+          "path": "/memory/upsert",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "content": {"title": "Content", "type": "string"},
+              "id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Id"},
+              "metadata": {"anyOf": [{"type": "object"}, {"type": "null"}], "default": null, "title": "Metadata"}
+            },
+            "required": ["content"],
+            "title": "upsert_memoryArguments"
+          }
+        },
+        {
+          "name": "delete_memory",
+          "description": "Delete a memory item by ID",
+          "path": "/memory/%INPUT%",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "memory_id": {"title": "Memory Id", "type": "string"}
+            },
+            "required": ["memory_id"],
+            "title": "delete_memoryArguments"
+          }
+        }
+      ]
+    }
+  }
+}

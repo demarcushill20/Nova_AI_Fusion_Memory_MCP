@@ -1,231 +1,308 @@
-# Nova AI Memory MCP Server
+# Nova AI Fusion Memory MCP Server
 
 ## 1. Overview
 
-This project implements a Model Context Protocol (MCP) compliant server that encapsulates the sophisticated memory system of Nova AI. It provides a standardized REST API for AI agents or other applications to interact with a fused memory store, combining semantic vector search (via Pinecone) and structured knowledge graph retrieval (via Neo4j).
+This project implements a Model Context Protocol (MCP) compliant server that encapsulates the sophisticated memory system of Nova AI. It provides a standardized MCP interface for AI agents (like Roo or Claude Desktop) to interact with a fused memory store, combining semantic vector search (via Pinecone) and structured knowledge graph retrieval (via Neo4j).
 
 The server leverages the core logic components from the original Nova AI system (`query_router`, `hybrid_merger`, `reranker`) to ensure functional parity in memory retrieval, including Reciprocal Rank Fusion (RRF) merging and cross-encoder reranking.
 
+This version uses the official `mcp-python-sdk` (`FastMCP`) framework for handling MCP communication, simplifying the architecture compared to previous versions that used a separate REST API and adapter.
+
 ## 2. Architecture
 
-The server is built using FastAPI and follows a layered architecture:
+The server now consists of a single primary process defined in `mcp_server.py`:
 
--   **API Layer (`app/api`)**: Defines REST endpoints (`/memory/query`, `/memory/upsert`, `/memory/{id}`, `/memory/health`).
+-   **MCP Server (`mcp_server.py`)**: Built using `FastMCP` from the `mcp-python-sdk`. It defines MCP tools (`query_memory`, `upsert_memory`, `delete_memory`, `check_health`) using decorators. It manages the lifecycle of the underlying `MemoryService` via an `asynccontextmanager` lifespan.
 -   **Service Layer (`app/services`)**:
-    -   `MemoryService`: Orchestrates memory operations, integrating all components.
+    -   `MemoryService`: Orchestrates memory operations, integrating all components. It is initialized during the MCP server's lifespan startup.
     -   `PineconeClient`: Handles interaction with the Pinecone vector database.
     -   `GraphClient`: Handles interaction with the Neo4j graph database.
     -   `EmbeddingService`: Generates text embeddings using OpenAI.
     -   Reused Nova Modules (`query_router`, `hybrid_merger`, `reranker`): Provide core retrieval logic.
--   **Configuration (`app/config.py`)**: Manages settings via environment variables or a `.env` file.
+-   **Configuration (`app/config.py`)**: Manages settings via environment variables or a `.env` file (loaded automatically by Pydantic settings or via Docker Compose/`docker run --env-file`).
 
-(Refer to `ARCHITECTURE.md` for a detailed diagram).
+(Refer to `ARCHITECTURE.md` for a conceptual diagram of the memory pipeline).
 
 ## 3. Setup and Installation
 
 ### Prerequisites
 
--   Python 3.9+
+-   Python 3.10+ (as used in Dockerfile)
+-   Docker and Docker Compose
 -   Access to OpenAI API (requires API key)
 -   Access to Pinecone (requires API key and environment details)
--   A running Neo4j database instance (local Docker container or cloud instance like AuraDB)
+-   *(Neo4j is handled by Docker Compose)*
 
 ### Steps
 
 1.  **Clone the repository:**
     ```bash
     git clone <repository_url>
-    cd nova_memory_mcp
+    cd Nova_AI_Fusion_Memory_MCP
     ```
 
-2.  **Create and activate a Python virtual environment:**
+2.  **(Optional) Create and activate a Python virtual environment (for local development/testing outside Docker):**
     ```bash
     python -m venv venv
     # On Windows
     .\venv\Scripts\activate
     # On Linux/macOS
     source venv/bin/activate
+    # Install dependencies if needed locally
+    # pip install -r requirements.txt 
     ```
 
-3.  **Install dependencies:**
-    ```bash
-    pip install -r requirements.txt
-    ```
-    *(Note: `requirements.txt` was created in Task T2. Ensure it's up-to-date if dependencies change).*
-
-4.  **Configure Environment Variables:**
+3.  **Configure Environment Variables:**
     -   Copy the `.env.example` file to `.env`:
         ```bash
-        cp .env.example .env
+        cp .env.example .env 
+        # Or on Windows: copy .env.example .env
         ```
     -   Edit the `.env` file and add your actual credentials:
         -   `OPENAI_API_KEY`: Your OpenAI API key.
         -   `PINECONE_API_KEY`: Your Pinecone API key.
-        -   `PINECONE_ENV`: Your Pinecone environment (e.g., `us-west1-gcp`).
-        -   `NEO4J_PASSWORD`: The password for your Neo4j database user.
-        -   *(Optional)* Adjust `PINECONE_INDEX`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_DATABASE` if they differ from the defaults.
-        -   **Important `NEO4J_URI` Note:** When running the server directly with Uvicorn (outside of Docker), ensure `NEO4J_URI` is set to `bolt://localhost:7687` in your `.env` file. If running via `docker-compose`, it should typically be `bolt://neo4j:7687`.
+        -   `PINECONE_ENV`: Your Pinecone environment (e.g., `us-east-1`).
+        -   `NEO4J_PASSWORD`: The password for the Neo4j database user (default user is `neo4j`).
+        -   *(Optional)* Adjust `PINECONE_INDEX`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_DATABASE` if they differ from the defaults used in `docker-compose.yml` or `app/config.py`. **Note:** `NEO4J_URI` should typically remain `bolt://neo4j:7687` when using Docker Compose, as this allows the `nova-memory` service to connect to the `neo4j` service within the Docker network.
 
-5.  **Ensure Neo4j is Running:**
-    -   If using Docker locally (recommended for development), you can use the provided `docker-compose.yml`:
-        ```bash
-        docker-compose up -d neo4j # Start only the Neo4j service
-        ```
-        Or run Neo4j manually (ensure the password matches your `.env` file):
-        ```bash
-        docker run --rm -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/<your_neo4j_password> neo4j:latest
-        ```
-    -   Verify Neo4j is accessible, typically via `http://localhost:7474`.
+## 4. Running the Server (Docker Compose Recommended)
 
-## 4. Running the Server
+Docker Compose handles starting the MCP server and its Neo4j dependency.
 
-Once the setup is complete, you have two main options:
+1.  **Build the Docker images:**
+    ```bash
+    docker-compose build
+    ```
+    *(This builds the `nova-memory` service image based on the `Dockerfile`)*
 
-**Option 1: Using Docker Compose (Recommended)**
+2.  **Start the MCP server and Neo4j:**
+    ```bash
+    docker-compose --profile mcp up -d
+    ```
+    -   `--profile mcp`: Ensures only the `nova-memory` (MCP server) and `neo4j` services are started.
+    -   `-d`: Runs the containers in detached mode (in the background).
 
-This handles dependencies and networking automatically.
+3.  **Verify the containers are running:**
+    ```bash
+    docker ps
+    ```
+    You should see `nova_mcp_server` and `nova_neo4j_db` listed with status "Up".
 
-```bash
-docker-compose up mcp-server # Starts the server and Neo4j if not running
+4.  **View Logs:**
+    ```bash
+    docker logs nova_mcp_server -f # Follow logs for the MCP server
+    docker logs nova_neo4j_db -f  # Follow logs for Neo4j
+    ```
+
+5.  **Stopping the Services:**
+    ```bash
+    docker-compose --profile mcp down
+    ```
+
+## 5. Connecting MCP Clients (Roo / Claude Desktop)
+
+This server communicates using the Model Context Protocol over standard input/output when run via Docker. Configure your MCP client (like Roo or Claude Desktop) to connect.
+
+### Configure Roo Integration
+
+Locate your Roo MCP settings file:
+-   Windows: `%APPDATA%\Code\User\globalStorage\rooveterinaryinc.roo-cline\settings\mcp_settings.json`
+-   macOS: `~/Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json`
+-   Linux: `~/.config/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/mcp_settings.json`
+
+Add or update the `nova-memory` server entry:
+
+```json
+{
+  "mcpServers": {
+    "nova-memory": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--env-file",
+        ".env",
+        "nova-memory-mcp_mcp-server:latest"
+      ],
+      "cwd": "c:/path/to/your/nova-memory-mcp",  // Replace with your actual path
+      "disabled": false,
+      "autoApprove": [],
+      "alwaysAllow": [
+        "query_memory",
+        "upsert_memory",
+        "delete_memory",
+        "check_health"
+      ],
+      "tools": [
+        {
+          "name": "query_memory",
+          "description": "Query the memory system",
+          "inputSchema": {
+            "type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]
+          }
+        },
+        {
+          "name": "check_health",
+          "description": "Check the health of the memory system",
+          "inputSchema": {"type": "object", "properties": {}}
+        },
+        {
+          "name": "upsert_memory",
+          "description": "Add or update a memory item",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {"type": "string", "description": "Optional ID"},
+              "content": {"type": "string"},
+              "metadata": {"type": "object"}
+            },
+            "required": ["content"]
+          }
+        },
+        {
+          "name": "delete_memory",
+          "description": "Delete a memory item by ID",
+          "inputSchema": {
+            "type": "object", "properties": {"memory_id": {"type": "string"}}, "required": ["memory_id"]
+          }
+        }
+      ]
+    }
+  }
+}
 ```
 
-**Option 2: Using Uvicorn Directly (for Development/Debugging)**
+**Key Roo configuration points:**
+- `cwd` **must** be set to the absolute path of the project directory so Docker can find the `.env` file
+- The relative path `.env` works when `cwd` is properly set
+- Restart Roo after saving the configuration
 
-Ensure you are in the project's root directory in your terminal.
+### Configure Claude Desktop Integration
 
-```powershell
-# Ensure Neo4j URI is set correctly for direct execution (PowerShell example)
-$env:NEO4J_URI='bolt://localhost:7687'; uvicorn app.main:app --port 8001
+Locate your Claude Desktop configuration file:
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Linux: `~/.config/Claude/claude_desktop_config.json`
+
+Add or update the `nova-memory` server entry:
+
+```json
+{
+  "mcpServers": {
+    "nova-memory": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network=nova-memory-mcp_nova_network",
+        "--env-file",
+        "c:/path/to/your/nova-memory-mcp/.env",
+        "nova-memory-mcp_mcp-server:latest"
+      ],
+      "cwd": "c:/path/to/your/nova-memory-mcp",
+      "transportType": "stdio",
+      "disabled": false,
+      "autoApprove": [],
+      "alwaysAllow": [
+        "query_memory",
+        "upsert_memory",
+        "delete_memory",
+        "check_health"
+      ],
+      "tools": [
+        {
+          "name": "query_memory",
+          "description": "Query the memory system",
+          "path": "/memory/query",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "query": {"type": "string", "description": "The query text to search for in memory"}
+            },
+            "required": ["query"]
+          }
+        },
+        {
+          "name": "check_health",
+          "description": "Check the health of the memory system",
+          "path": "/memory/health",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "upsert_memory",
+          "description": "Add or update a memory item",
+          "path": "/memory/upsert",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null},
+              "content": {"type": "string"},
+              "metadata": {"anyOf": [{"type": "object"}, {"type": "null"}], "default": null}
+            },
+            "required": ["content"]
+          }
+        },
+        {
+          "name": "delete_memory",
+          "description": "Delete a memory item by ID",
+          "path": "/memory/%INPUT%",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "memory_id": {"type": "string"}
+            },
+            "required": ["memory_id"]
+          }
+        }
+      ]
+    }
+  }
+}
 ```
 
--   **Environment Variable:** Setting `$env:NEO4J_URI='bolt://localhost:7687';` before the `uvicorn` command ensures the application connects to Neo4j running on the host machine. This might be necessary if the `.env` file setting isn't picked up correctly by the Uvicorn process, especially when using reloaders.
--   `--port 8001`: Specifies the port. We use 8001 here as an example; you might need to use a different port if 8000 or 8001 is already in use.
--   `--reload`: You can add `--reload` for auto-reloading during development (`uvicorn app.main:app --reload --port 8001`), but be aware that environment variable inheritance with reloaders can sometimes be tricky. If you encounter connection issues with `--reload`, try running without it first.
+**Key Claude Desktop configuration differences:**
+- For Claude Desktop, use the **absolute path** to the `.env` file: `c:/path/to/your/nova-memory-mcp/.env`
+- Add the Docker network parameter: `--network=nova-memory-mcp_nova_network`
+- Include `"transportType": "stdio"` in the configuration
+- Restart Claude Desktop after saving the configuration
 
-The server will start, and you should see output indicating it's running and initializing components.
+### Troubleshooting Connection Issues
 
-You can access the automatically generated API documentation (adjust port if needed):
+If you encounter connection issues:
 
--   **Swagger UI:** `http://localhost:8001/docs`
--   **ReDoc:** `http://localhost:8001/redoc`
+1. **Check the logs:**
+   - Roo logs: Available in VSCode output panel
+   - Claude Desktop logs: Located in `%APPDATA%\Claude\logs\mcp-server-nova-memory.log` (Windows)
 
-## 5. API Endpoints
+2. **Common issues:**
+   - Missing `.env` file or incorrect path
+   - Docker network configuration issues
+   - Docker container not running or already in use
+   - Incorrect container name or image name
 
-The server exposes the following endpoints under the `/memory` prefix:
+3. **Verify Docker containers:**
+   ```bash
+   docker ps  # Check if nova_mcp_server is running
+   docker logs nova_mcp_server  # Check container logs
+   ```
 
--   **`POST /memory/query`**:
-    -   Retrieves relevant memory items based on a query.
-    -   **Request Body:** `{"query": "Your query text"}`
-    -   **Response Body:** `{"results": [{"id": ..., "text": ..., "source": ..., "score": ..., "metadata": ...}, ...]}`
+### Using the Memory System
 
--   **`POST /memory/upsert`**:
-    -   Adds or updates a memory item.
-    -   **Request Body:** `{"id": "optional_id", "content": "Memory content", "metadata": {"key": "value"}}`
-    -   **Response Body:** `{"id": "item_id", "status": "success"}`
+Once connected, you can interact with the memory system:
 
--   **`DELETE /memory/{memory_id}`**:
-    -   Deletes a memory item by its ID.
-    -   **Path Parameter:** `memory_id` (string)
-    -   **Response Body:** `{"id": "item_id", "status": "deleted"}`
+- **Store Memory:** "Remember that the project kickoff is next Tuesday."
+- **Query Memory:** "What do you know about the project kickoff?"
+- **Check Health:** "Is the nova-memory system working properly?"
 
--   **`GET /memory/health`**:
-    -   Checks the health of the server and its dependencies.
-    -   **Response Body:** `{"status": "ok", "pinecone": "ok", "graph": "ok", "reranker": "loaded"}` (or error details)
+## 6. Future Work
 
-## 6. Connecting an AI Agent
-
-An AI agent (or any client application) can interact with this MCP server by making standard HTTP requests to the endpoints described above.
-
-Here's a basic Python example using the `requests` library:
-
-```python
-import requests
-import json
-
-# Base URL of the running MCP server
-MCP_SERVER_URL = "http://localhost:8001" # Adjust port if you used a different one
-
-def query_memory(query_text: str):
-    """Sends a query to the MCP server."""
-    try:
-        response = requests.post(
-            f"{MCP_SERVER_URL}/memory/query",
-            json={"query": query_text}
-        )
-        response.raise_for_status() # Raise an exception for bad status codes (4xx or 5xx)
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error querying memory: {e}")
-        return None
-
-def upsert_memory(content: str, item_id: str = None, metadata: dict = None):
-    """Upserts a memory item."""
-    payload = {"content": content}
-    if item_id:
-        payload["id"] = item_id
-    if metadata:
-        payload["metadata"] = metadata
-
-    try:
-        response = requests.post(
-            f"{MCP_SERVER_URL}/memory/upsert",
-            json=payload
-        )
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error upserting memory: {e}")
-        return None
-
-def delete_memory(item_id: str):
-    """Deletes a memory item."""
-    try:
-        response = requests.delete(f"{MCP_SERVER_URL}/memory/{item_id}")
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.RequestException as e:
-        print(f"Error deleting memory: {e}")
-        return None
-
-# --- Example Agent Interaction ---
-if __name__ == "__main__":
-    # Example: Upsert some information
-    upsert_info = upsert_memory(
-        content="The capital of France is Paris.",
-        item_id="france_capital",
-        metadata={"topic": "geography"}
-    )
-    if upsert_info:
-        print(f"Upsert successful: {upsert_info}")
-
-    # Example: Query the memory
-    query = "What is the capital of France?"
-    print(f"\nQuerying: {query}")
-    query_result = query_memory(query)
-
-    if query_result and query_result.get("results"):
-        print("Results:")
-        for i, item in enumerate(query_result["results"]):
-            print(f"  {i+1}. ID: {item['id']}, Score: {item['score']:.4f}, Text: {item['text']}")
-    elif query_result:
-        print("No relevant results found.")
-
-    # Example: Delete the memory
-    # delete_info = delete_memory("france_capital")
-    # if delete_info:
-    #     print(f"\nDelete successful: {delete_info}")
-
-```
-
-An agent would typically:
-1.  Call `query_memory` before generating a response to retrieve relevant context.
-2.  Format the retrieved `results` (text snippets) into its prompt.
-3.  Generate its response.
-4.  Potentially call `upsert_memory` to store new information learned during the interaction or the conversation turn itself.
-
-## 7. Future Work
-
--   Add authentication/authorization for secure access.
+-   Add authentication/authorization for secure access (potentially using MCP's OAuth features).
 -   Implement more sophisticated graph querying strategies.
--   Explore batch API endpoints for bulk operations.
+-   Explore batch operations for efficiency.
 -   Enhance monitoring and logging.
+-   Add support for more MCP operations and memory manipulation features.
