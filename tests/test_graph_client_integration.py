@@ -26,16 +26,15 @@ logger = logging.getLogger(__name__)
 async def run_graph_integration_test():
     """
     Integration test harness for GraphClient (Neo4j).
-    Requires a running Neo4j instance and valid credentials in .env.
+    Requires a running Neo4j instance. Supports auth on/off based on settings.
     WARNING: This performs REAL operations on your Neo4j database.
     """
     logger.info("--- Starting Graph Client Integration Test Harness ---")
 
-    # Check for required settings
-    if not settings.NEO4J_PASSWORD: # Password is the most critical indicator
-        logger.error("❌ NEO4J_PASSWORD not found in settings. Skipping integration test.")
-        print("Skipping Neo4j integration test: NEO4J_PASSWORD not set in .env")
-        return
+    if settings.NEO4J_PASSWORD:
+        logger.info("Using authenticated Neo4j integration mode.")
+    else:
+        logger.info("Using unauthenticated Neo4j integration mode (NEO4J_PASSWORD not set).")
 
     # --- Print the URI being used ---
     logger.info(f"Attempting to use Neo4j URI from settings: {settings.NEO4J_URI}")

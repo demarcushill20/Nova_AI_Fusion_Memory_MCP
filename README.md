@@ -62,7 +62,7 @@ The server now consists of a single primary process defined in `mcp_server.py`:
         -   `OPENAI_API_KEY`: Your OpenAI API key.
         -   `PINECONE_API_KEY`: Your Pinecone API key.
         -   `PINECONE_ENV`: Your Pinecone environment (e.g., `us-east-1`).
-        -   `NEO4J_PASSWORD`: The password for the Neo4j database user (default user is `neo4j`).
+        -   `NEO4J_PASSWORD`: Optional. Set this only if Neo4j authentication is enabled.
         -   *(Optional)* Adjust `PINECONE_INDEX`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_DATABASE` if they differ from the defaults used in `docker-compose.yml` or `app/config.py`. **Note:** `NEO4J_URI` should typically remain `bolt://neo4j:7687` when using Docker Compose, as this allows the `nova-memory` service to connect to the `neo4j` service within the Docker network.
 
 ## 4. Running the Server (Docker Compose Recommended)

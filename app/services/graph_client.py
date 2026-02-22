@@ -46,24 +46,22 @@ class GraphClient:
         user = settings.NEO4J_USER
         password = settings.NEO4J_PASSWORD
 
-        if not password:
-             logger.error("❌ NEO4J_PASSWORD is not set. Cannot connect to Neo4j.")
-             return False
-
         try:
             logger.info(f"Initializing Neo4j async driver for URI: {uri}, User: {user}...")
-            # Log credentials just before use (mask password for safety)
-            masked_password = f"{password[:1]}...{password[-1:]}" if password and len(password) > 1 else "****"
-            logger.info(f"Attempting driver connection with User: '{user}', Password: '{masked_password}'")
+            auth_kwargs: Dict[str, Any] = {}
+            if password:
+                masked_password = f"{password[:1]}...{password[-1:]}" if len(password) > 1 else "****"
+                logger.info(f"Attempting authenticated driver connection with User: '{user}', Password: '{masked_password}'")
+                auth_kwargs["auth"] = (user, password)
+            else:
+                logger.info("Attempting driver connection without authentication (NEO4J_PASSWORD not set).")
+
             # Add a delay to allow Neo4j container to fully initialize
             logger.info("Waiting 5 seconds for Neo4j service to potentially start...")
             await asyncio.sleep(5)
             logger.info("Attempting Neo4j driver creation...")
-            # --- BEGIN DEBUG LOGGING ---
-            logger.info(f"DEBUG: URI='{uri}', User='{user}', Password='{password}'")
-            # --- END DEBUG LOGGING ---
             # Use AsyncGraphDatabase for the async driver
-            self.driver = AsyncGraphDatabase.driver(uri, auth=(user, password))
+            self.driver = AsyncGraphDatabase.driver(uri, **auth_kwargs)
             # Verify connectivity during initialization
             await self.check_connection()
             logger.info(f"Successfully connected to Neo4j database: {self._DATABASE} at {uri}")
@@ -278,10 +276,11 @@ class GraphClient:
 # Example usage (optional, for testing)
 async def _test_graph_client():
     print("Testing Graph Client...")
-    # Requires Neo4j connection details in settings
-    if not settings.NEO4J_PASSWORD:
-        print("Skipping Graph client test: NEO4J_PASSWORD not set.")
-        return
+    # Works with or without auth depending on NEO4J_PASSWORD.
+    if settings.NEO4J_PASSWORD:
+        print("Using authenticated Neo4j connection for graph client test.")
+    else:
+        print("Using unauthenticated Neo4j connection for graph client test.")
 
     client = GraphClient()
     initialized = await client.initialize()

@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     # Neo4j Configuration
     NEO4J_URI: str = "bolt://neo4j:7687" # Default Docker Compose service URI
     NEO4J_USER: str = "neo4j"
-    NEO4J_PASSWORD: str
+    NEO4J_PASSWORD: Optional[str] = None # Optional when Neo4j auth is disabled
     NEO4J_DATABASE: str = "neo4j" # Default database
 
     # Reranker Configuration (Optional)
