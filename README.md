@@ -12,7 +12,7 @@ This version uses the official `mcp-python-sdk` (`FastMCP`) framework for handli
 
 The server now consists of a single primary process defined in `mcp_server.py`:
 
--   **MCP Server (`mcp_server.py`)**: Built using `FastMCP` from the `mcp-python-sdk`. It defines MCP tools (`query_memory`, `upsert_memory`, `delete_memory`, `check_health`) using decorators. It manages the lifecycle of the underlying `MemoryService` via an `asynccontextmanager` lifespan.
+-   **MCP Server (`mcp_server.py`)**: Built using `FastMCP` from the `mcp-python-sdk`. It defines MCP tools (`query_memory`, `upsert_memory`, `bulk_upsert_memory`, `delete_memory`, `check_health`) using decorators. It manages the lifecycle of the underlying `MemoryService` via an `asynccontextmanager` lifespan.
 -   **Service Layer (`app/services`)**:
     -   `MemoryService`: Orchestrates memory operations, integrating all components. It is initialized during the MCP server's lifespan startup.
     -   `PineconeClient`: Handles interaction with the Pinecone vector database.
@@ -131,6 +131,7 @@ Add or update the `nova-memory` server entry:
       "alwaysAllow": [
         "query_memory",
         "upsert_memory",
+        "bulk_upsert_memory",
         "delete_memory",
         "check_health"
       ],
@@ -168,6 +169,29 @@ Add or update the `nova-memory` server entry:
               "metadata": {"type": "object"}
             },
             "required": ["content"]
+          }
+        },
+        {
+          "name": "bulk_upsert_memory",
+          "description": "Add or update multiple memory items",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null},
+                    "content": {"type": "string"},
+                    "metadata": {"anyOf": [{"type": "object"}, {"type": "null"}], "default": null}
+                  },
+                  "required": ["content"]
+                }
+              }
+            },
+            "required": ["items"]
           }
         },
         {
@@ -218,6 +242,7 @@ Add or update the `nova-memory` server entry:
       "alwaysAllow": [
         "query_memory",
         "upsert_memory",
+        "bulk_upsert_memory",
         "delete_memory",
         "check_health"
       ],
@@ -261,6 +286,30 @@ Add or update the `nova-memory` server entry:
               "metadata": {"anyOf": [{"type": "object"}, {"type": "null"}], "default": null}
             },
             "required": ["content"]
+          }
+        },
+        {
+          "name": "bulk_upsert_memory",
+          "description": "Add or update multiple memory items",
+          "path": "/memory/bulk-upsert",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null},
+                    "content": {"type": "string"},
+                    "metadata": {"anyOf": [{"type": "object"}, {"type": "null"}], "default": null}
+                  },
+                  "required": ["content"]
+                }
+              }
+            },
+            "required": ["items"]
           }
         },
         {
@@ -314,6 +363,12 @@ Once connected, you can interact with the memory system:
 - **Store Memory:** "Remember that the project kickoff is next Tuesday."
 - **Query Memory:** "What do you know about the project kickoff?"
 - **Check Health:** "Is the nova-memory system working properly?"
+- **Bulk Store Memory:** "Store these 10 extracted findings in memory."
+
+### Memory Governance
+
+- Use `MEMORY_SCHEMA.md` as the canonical metadata contract for all durable writes.
+- Use `OPENCLAW_MEMORY_RULES.md` for multi-agent write/read discipline.
 
 ## 6. Future Work
 

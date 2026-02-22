@@ -259,6 +259,39 @@ async def upsert_memory(
 
 
 @mcp.tool()
+async def bulk_upsert_memory(
+    ctx: Context,
+    items: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    """
+    Adds or updates multiple memory items in one call.
+
+    Expected item shape:
+      {"content": str, "id": Optional[str], "metadata": Optional[dict]}
+    """
+    item_count = len(items) if isinstance(items, list) else 0
+    logger.info(f"Tool 'bulk_upsert_memory' called with {item_count} items.")
+
+    if not isinstance(items, list) or not items:
+        return {"error": "items must be a non-empty list"}
+    if len(items) > 500:
+        return {"error": "items length must be <= 500"}
+
+    try:
+        memory_service = _require_memory_service(ctx)
+        summary = await memory_service.perform_bulk_upsert(items=items)
+        logger.info(
+            "Bulk upsert summary: "
+            f"status={summary.get('status')}, total={summary.get('total')}, "
+            f"succeeded={summary.get('succeeded')}, failed={summary.get('failed')}"
+        )
+        return summary
+    except Exception as e:
+        logger.error(f"Error during bulk_upsert_memory: {e}", exc_info=True)
+        return {"error": f"Failed to bulk upsert memories: {str(e)}"}
+
+
+@mcp.tool()
 async def delete_memory(ctx: Context, memory_id: str) -> Dict[str, Any]:
     """
     Deletes a memory item by its ID from both Pinecone and Neo4j.

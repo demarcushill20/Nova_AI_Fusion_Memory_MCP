@@ -18,6 +18,7 @@
       "alwaysAllow": [
         "query_memory",
         "upsert_memory",
+        "bulk_upsert_memory",
         "delete_memory",
         "check_health"
       ],
@@ -64,6 +65,32 @@
             },
             "required": ["content"],
             "title": "upsert_memoryArguments"
+          }
+        },
+        {
+          "name": "bulk_upsert_memory",
+          "description": "Add or update multiple memory items",
+          "path": "/memory/bulk-upsert",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "items": {
+                "title": "Items",
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "content": {"type": "string"},
+                    "id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null},
+                    "metadata": {"anyOf": [{"type": "object"}, {"type": "null"}], "default": null}
+                  },
+                  "required": ["content"]
+                }
+              }
+            },
+            "required": ["items"],
+            "title": "bulk_upsert_memoryArguments"
           }
         },
         {

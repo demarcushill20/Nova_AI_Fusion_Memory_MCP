@@ -68,11 +68,11 @@ class MemoryService:
         reranker_ok = isinstance(results[2], bool) and results[2]
 
         if not pinecone_ok:
-            logger.error("❌ Pinecone client failed to initialize.")
+            logger.error("Pinecone client failed to initialize.")
         if not graph_ok:
-            logger.error("❌ Graph client failed to initialize.")
+            logger.error("Graph client failed to initialize.")
         if not reranker_ok:
-            logger.warning("⚠️ Reranker model failed to load. Reranking will be disabled.")
+            logger.warning("Reranker model failed to load. Reranking will be disabled.")
             self.reranker = None # Ensure reranker is None if loading failed
         else:
              self._reranker_loaded = True
@@ -101,7 +101,10 @@ class MemoryService:
                 logger.warning("No RERANKER_MODEL_NAME configured. Reranker disabled.")
                 return False # Consider False as "not loaded"
         except Exception as e:
-            logger.error(f"❌ Exception during reranker initialization/loading: {e}", exc_info=True)
+            logger.error(
+                f"Exception during reranker initialization/loading: {e}",
+                exc_info=True,
+            )
             self.reranker = None
             return False
 
@@ -145,7 +148,7 @@ class MemoryService:
                  logger.error("Failed to get valid query embedding. Aborting query.")
                  return []
         except Exception as e:
-            logger.error(f"❌ Error getting query embedding: {e}", exc_info=True)
+            logger.error(f"Error getting query embedding: {e}", exc_info=True)
             return []
 
         # 3. Parallel Retrieval (Vector + Graph)
@@ -165,16 +168,16 @@ class MemoryService:
                 vector_results = results[0]
                 logger.info(f"Vector retrieval returned {len(vector_results)} results.")
             elif isinstance(results[0], Exception):
-                logger.error(f"❌ Vector retrieval failed: {results[0]}", exc_info=results[0])
+                logger.error(f"Vector retrieval failed: {results[0]}", exc_info=results[0])
 
             if isinstance(results[1], list):
                 graph_results = results[1]
                 logger.info(f"Graph retrieval returned {len(graph_results)} results.")
             elif isinstance(results[1], Exception):
-                logger.error(f"❌ Graph retrieval failed: {results[1]}", exc_info=results[1])
+                logger.error(f"Graph retrieval failed: {results[1]}", exc_info=results[1])
 
         except Exception as e:
-            logger.error(f"❌ Error during parallel retrieval: {e}", exc_info=True)
+            logger.error(f"Error during parallel retrieval: {e}", exc_info=True)
             # Continue with potentially partial results if possible
 
         # 4. Hybrid Merging (RRF)
@@ -190,7 +193,7 @@ class MemoryService:
             )
             logger.info(f"Hybrid merging complete. {len(fused_results)} unique results after RRF.")
         except Exception as e:
-            logger.error(f"❌ Error during hybrid merging: {e}", exc_info=True)
+            logger.error(f"Error during hybrid merging: {e}", exc_info=True)
             # Fallback: maybe just return vector results? Or empty? Returning empty for now.
             return []
 
@@ -202,7 +205,10 @@ class MemoryService:
                 final_results = await self.reranker.rerank(query_text, fused_results, top_n=top_k_final)
                 logger.info(f"Reranking complete. Returning top {len(final_results)} results.")
             except Exception as e:
-                logger.error(f"❌ Error during reranking: {e}. Returning fused results without reranking.", exc_info=True)
+                logger.error(
+                    f"Error during reranking: {e}. Returning fused results without reranking.",
+                    exc_info=True,
+                )
                 # Fallback to fused results if reranking fails
                 final_results = fused_results[:top_k_final]
         else:
@@ -211,7 +217,86 @@ class MemoryService:
 
         return final_results
 
-    async def perform_upsert(self, content: str, memory_id: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None) -> Optional[str]:
+    def _resolve_memory_id(self, content: str, memory_id: Optional[str] = None) -> str:
+        """Returns the caller-provided ID or deterministic MD5(content)."""
+        return memory_id or hashlib.md5(content.encode()).hexdigest()
+
+    async def _persist_memory_item(
+        self,
+        item_id: str,
+        content: str,
+        metadata: Optional[Dict[str, Any]],
+        embedding: List[float],
+    ) -> bool:
+        """
+        Persists one memory item to Pinecone and Neo4j.
+
+        Returns:
+            True if both writes succeed, otherwise False (with rollback attempts).
+        """
+        pinecone_meta = metadata.copy() if metadata else {}
+        pinecone_meta["text"] = content
+
+        pinecone_success = False
+        graph_success = False
+
+        try:
+            pinecone_success = await asyncio.to_thread(
+                self.pinecone_client.upsert_vector, item_id, embedding, pinecone_meta
+            )
+        except Exception as e:
+            logger.error(
+                f"Error during Pinecone upsert execution for ID {item_id}: {e}",
+                exc_info=True,
+            )
+            pinecone_success = False
+
+        try:
+            graph_success = await self.graph_client.upsert_graph_data(
+                item_id, content, metadata
+            )
+        except Exception as e:
+            logger.error(
+                f"Error during Graph upsert execution for ID {item_id}: {e}",
+                exc_info=True,
+            )
+            graph_success = False
+
+        if pinecone_success and graph_success:
+            logger.info(f"Successfully upserted ID {item_id} to both Pinecone and Graph.")
+            return True
+
+        if pinecone_success and not graph_success:
+            logger.error(
+                f"Upsert failed for ID {item_id}: succeeded in Pinecone but failed in Graph."
+            )
+            logger.warning(
+                f"Attempting rollback: deleting ID {item_id} from Pinecone due to graph failure."
+            )
+            rollback_ok = await asyncio.to_thread(self.pinecone_client.delete_vector, item_id)
+            logger.warning(f"Pinecone rollback successful: {rollback_ok}")
+            return False
+
+        if not pinecone_success and graph_success:
+            logger.error(
+                f"Upsert failed for ID {item_id}: succeeded in Graph but failed in Pinecone."
+            )
+            logger.warning(
+                f"Attempting rollback: deleting ID {item_id} from Graph due to Pinecone failure."
+            )
+            rollback_ok = await self.graph_client.delete_graph_data(item_id)
+            logger.warning(f"Graph rollback successful: {rollback_ok}")
+            return False
+
+        logger.error(f"Upsert failed for ID {item_id}: failed in both Pinecone and Graph.")
+        return False
+
+    async def perform_upsert(
+        self,
+        content: str,
+        memory_id: Optional[str] = None,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> Optional[str]:
         """
         Upserts memory content into both Pinecone and Neo4j.
 
@@ -230,67 +315,189 @@ class MemoryService:
             logger.warning("Received empty content for upsert.")
             return None
 
-        # 1. Determine ID
-        item_id = memory_id or hashlib.md5(content.encode()).hexdigest()
+        item_id = self._resolve_memory_id(content, memory_id)
         logger.info(f"Performing upsert for ID: {item_id}, Content: '{content[:100]}...'")
 
-        # 2. Get Embedding
         try:
-            # Run sync function in thread
-            embedding = await asyncio.to_thread(get_embedding, content, self.embedding_model_name)
-            if not any(embedding): # Check for zero vector
-                 logger.error(f"Failed to get valid embedding for upsert ID {item_id}. Aborting.")
-                 return None
-        except Exception as e:
-            logger.error(f"❌ Error getting embedding for upsert ID {item_id}: {e}", exc_info=True)
-            return None
-
-        # 3. Prepare Metadata for Pinecone (ensure 'text' field exists)
-        pinecone_meta = metadata.copy() if metadata else {}
-        pinecone_meta['text'] = content # Crucial for retrieval pipeline
-
-        # 4. Perform Upserts (Vector + Graph) - Attempt both, handle errors
-        pinecone_success = False
-        graph_success = False
-
-        try:
-            # Run sync function in thread
-            pinecone_success = await asyncio.to_thread(
-                self.pinecone_client.upsert_vector, item_id, embedding, pinecone_meta
+            embedding = await asyncio.to_thread(
+                get_embedding, content, self.embedding_model_name
             )
+            if not any(embedding):
+                logger.error(
+                    f"Failed to get valid embedding for upsert ID {item_id}. Aborting."
+                )
+                return None
         except Exception as e:
-            logger.error(f"❌ Error during Pinecone upsert thread execution for ID {item_id}: {e}", exc_info=True)
-            pinecone_success = False # Ensure flag is False on exception
-
-        try:
-            # Graph upsert is already async
-            graph_success = await self.graph_client.upsert_graph_data(item_id, content, metadata)
-        except Exception as e:
-            logger.error(f"❌ Error during Graph upsert execution for ID {item_id}: {e}", exc_info=True)
-            graph_success = False # Ensure flag is False on exception
-
-        # 5. Handle Results and Potential Rollback/Logging
-        if pinecone_success and graph_success:
-            logger.info(f"Successfully upserted ID {item_id} to both Pinecone and Graph.")
-            return item_id
-        elif pinecone_success and not graph_success:
-            logger.error(f"❌ Upsert failed for ID {item_id}: Succeeded in Pinecone but failed in Graph.")
-            # Optional: Attempt rollback from Pinecone
-            logger.warning(f"Attempting rollback: Deleting ID {item_id} from Pinecone due to graph failure.")
-            # Run sync function in thread
-            rollback_ok = await asyncio.to_thread(self.pinecone_client.delete_vector, item_id)
-            logger.warning(f"Pinecone rollback successful: {rollback_ok}")
+            logger.error(
+                f"Error getting embedding for upsert ID {item_id}: {e}",
+                exc_info=True,
+            )
             return None
-        elif not pinecone_success and graph_success:
-            logger.error(f"❌ Upsert failed for ID {item_id}: Succeeded in Graph but failed in Pinecone.")
-            # Optional: Attempt rollback from Graph
-            logger.warning(f"Attempting rollback: Deleting ID {item_id} from Graph due to Pinecone failure.")
-            rollback_ok = await self.graph_client.delete_graph_data(item_id) # Already async
-            logger.warning(f"Graph rollback successful: {rollback_ok}")
-            return None
+
+        success = await self._persist_memory_item(
+            item_id=item_id,
+            content=content,
+            metadata=metadata,
+            embedding=embedding,
+        )
+        return item_id if success else None
+
+    async def perform_bulk_upsert(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Upserts multiple memory items in one call.
+
+        Expected item shape:
+            {"content": str, "id": Optional[str], "metadata": Optional[dict]}
+        """
+        if not self._initialized:
+            logger.error("MemoryService not initialized. Cannot perform bulk upsert.")
+            return {
+                "status": "error",
+                "total": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "ids": [],
+                "errors": [{"index": -1, "error": "MemoryService not initialized"}],
+            }
+
+        if not items:
+            logger.warning("perform_bulk_upsert called with no items.")
+            return {
+                "status": "error",
+                "total": 0,
+                "succeeded": 0,
+                "failed": 0,
+                "ids": [],
+                "errors": [{"index": -1, "error": "No items provided"}],
+            }
+
+        normalized_items: List[Dict[str, Any]] = []
+        errors: List[Dict[str, Any]] = []
+
+        for index, item in enumerate(items):
+            if not isinstance(item, dict):
+                errors.append({"index": index, "error": "Each item must be an object"})
+                continue
+
+            content = item.get("content")
+            if not isinstance(content, str) or not content.strip():
+                errors.append(
+                    {
+                        "index": index,
+                        "error": "Item.content is required and must be a non-empty string",
+                    }
+                )
+                continue
+
+            raw_metadata = item.get("metadata")
+            if raw_metadata is None:
+                metadata: Dict[str, Any] = {}
+            elif isinstance(raw_metadata, dict):
+                metadata = raw_metadata
+            else:
+                errors.append(
+                    {
+                        "index": index,
+                        "error": "Item.metadata must be an object when provided",
+                    }
+                )
+                continue
+
+            raw_id = item.get("id")
+            if raw_id is not None and not isinstance(raw_id, str):
+                errors.append(
+                    {"index": index, "error": "Item.id must be a string when provided"}
+                )
+                continue
+
+            resolved_id = self._resolve_memory_id(content=content, memory_id=raw_id)
+            normalized_items.append(
+                {
+                    "index": index,
+                    "content": content,
+                    "memory_id": resolved_id,
+                    "metadata": metadata,
+                }
+            )
+
+        successful_ids: List[str] = []
+
+        if normalized_items:
+            contents = [entry["content"] for entry in normalized_items]
+            embeddings = await batch_get_embeddings(contents, self.embedding_model_name)
+
+            persist_tasks = []
+            valid_entries: List[Dict[str, Any]] = []
+            for idx, entry in enumerate(normalized_items):
+                embedding = embeddings[idx] if idx < len(embeddings) else []
+                if not embedding or not any(embedding):
+                    errors.append(
+                        {
+                            "index": entry["index"],
+                            "id": entry["memory_id"],
+                            "error": "Failed to generate embedding",
+                        }
+                    )
+                    continue
+
+                valid_entries.append(entry)
+                persist_tasks.append(
+                    self._persist_memory_item(
+                        item_id=entry["memory_id"],
+                        content=entry["content"],
+                        metadata=entry["metadata"],
+                        embedding=embedding,
+                    )
+                )
+
+            if persist_tasks:
+                persist_results = await asyncio.gather(
+                    *persist_tasks, return_exceptions=True
+                )
+                for entry, result in zip(valid_entries, persist_results):
+                    if isinstance(result, Exception):
+                        errors.append(
+                            {
+                                "index": entry["index"],
+                                "id": entry["memory_id"],
+                                "error": f"Unexpected exception: {result}",
+                            }
+                        )
+                        continue
+
+                    if result:
+                        successful_ids.append(entry["memory_id"])
+                    else:
+                        errors.append(
+                            {
+                                "index": entry["index"],
+                                "id": entry["memory_id"],
+                                "error": "Upsert failed in one or more stores",
+                            }
+                        )
+
+        total = len(items)
+        succeeded = len(successful_ids)
+        failed = total - succeeded
+
+        if failed == 0:
+            status = "success"
+        elif succeeded > 0:
+            status = "partial_success"
         else:
-            logger.error(f"❌ Upsert failed for ID {item_id}: Failed in both Pinecone and Graph.")
-            return None
+            status = "error"
+
+        logger.info(
+            f"Bulk upsert complete. Total={total}, Succeeded={succeeded}, Failed={failed}"
+        )
+        return {
+            "status": status,
+            "total": total,
+            "succeeded": succeeded,
+            "failed": failed,
+            "ids": successful_ids,
+            "errors": errors,
+        }
 
     async def perform_delete(self, memory_id: str) -> bool:
         """
@@ -323,9 +530,9 @@ class MemoryService:
             graph_success = isinstance(results[1], bool) and results[1]
 
             if isinstance(results[0], Exception):
-                 logger.error(f"❌ Error during Pinecone delete thread execution for ID {memory_id}: {results[0]}", exc_info=results[0])
+                 logger.error(f"Error during Pinecone delete thread execution for ID {memory_id}: {results[0]}", exc_info=results[0])
             if isinstance(results[1], Exception):
-                 logger.error(f"❌ Error during Graph delete execution for ID {memory_id}: {results[1]}", exc_info=results[1])
+                 logger.error(f"Error during Graph delete execution for ID {memory_id}: {results[1]}", exc_info=results[1])
 
             if pinecone_success or graph_success:
                  logger.info(f"Deletion attempt for ID {memory_id} complete. Pinecone success: {pinecone_success}, Graph success: {graph_success}")
@@ -336,7 +543,7 @@ class MemoryService:
                  return False # Failed in both
 
         except Exception as e:
-            logger.error(f"❌ Unexpected error during parallel delete for ID {memory_id}: {e}", exc_info=True)
+            logger.error(f"Unexpected error during parallel delete for ID {memory_id}: {e}", exc_info=True)
             return False
 
     async def check_health(self) -> Dict[str, str]:
@@ -380,7 +587,7 @@ class MemoryService:
                  pass
 
         except Exception as e:
-            logger.error(f"❌ Unexpected error during health check: {e}", exc_info=True)
+            logger.error(f"Unexpected error during health check: {e}", exc_info=True)
             statuses["status"] = "error"
             statuses["detail"] = f"Unexpected error: {e}"
 

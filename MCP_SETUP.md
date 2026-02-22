@@ -57,6 +57,7 @@ To use the Nova Memory MCP Server with Claude Desktop, you need to update your C
       "alwaysAllow": [
         "query_memory",
         "upsert_memory",
+        "bulk_upsert_memory",
         "delete_memory",
         "check_health"
       ]
@@ -77,6 +78,7 @@ The Nova Memory MCP Server provides the following tools for Claude Desktop:
 |-----------|-------------|------------|
 | `query_memory` | Query the memory system | `{"query":"your query","top_k_vector":50,"top_k_final":15,"category":"optional","tags":["optional"],"min_score":0.0,"run_id":"optional"}` |
 | `upsert_memory` | Add or update a memory item | `{"content": "memory content", "id": "optional-id", "metadata": {}}` |
+| `bulk_upsert_memory` | Add or update multiple memory items in one call | `{"items":[{"content":"memory 1","id":"optional-id-1","metadata":{}},{"content":"memory 2","metadata":{"category":"strategy_spec"}}]}` |
 | `delete_memory` | Delete a memory item by ID | `{"memory_id": "memory-id-to-delete"}` |
 | `check_health` | Check the health of the memory system | `{}` |
 
