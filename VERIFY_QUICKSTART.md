@@ -1,5 +1,8 @@
 # VERIFY_QUICKSTART
 
+If `.../main/...` looks stale, use `.../refs/heads/main/...` or a commit-pinned URL.
+This avoids raw alias cache inconsistencies in some environments.
+
 Use this to quickly verify that `main` serves multiline runtime files and that local parse checks pass.
 
 ```bash

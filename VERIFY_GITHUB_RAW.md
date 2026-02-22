@@ -1,5 +1,8 @@
 # VERIFY_GITHUB_RAW
 
+If `.../main/...` looks stale, use `.../refs/heads/main/...` or a commit-pinned URL.
+This avoids raw alias cache inconsistencies in some environments.
+
 This report is generated from commit-pinned GitHub raw URLs and local
 validation commands. It is saved as UTF-8 without BOM with LF newlines.
 
