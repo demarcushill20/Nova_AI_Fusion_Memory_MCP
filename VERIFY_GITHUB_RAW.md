@@ -1,4 +1,4 @@
-﻿# VERIFY_GITHUB_RAW
+# VERIFY_GITHUB_RAW
 
 This document proves that GitHub serves multiline, parse-valid files for the pinned commit and that local validation checks pass.
 
