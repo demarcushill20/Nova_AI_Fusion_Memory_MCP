@@ -1,5 +1,7 @@
 # Nova AI Memory MCP Server - Architecture Design
 
+> NOTE: This document contains earlier REST/FastAPI design material. The current runtime MCP implementation is `mcp_server.py` using `FastMCP` stdio tools (`query_memory`, `upsert_memory`, `delete_memory`, `check_health`).
+
 ## 1. Introduction
 
 ### 1.1. Overview

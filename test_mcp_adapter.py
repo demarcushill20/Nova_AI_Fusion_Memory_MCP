@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-MCP Adapter Test Script
------------------------
-This script tests the MCP adapter functionality by sending MCP-formatted
-requests directly to the stdin of the adapter and reading responses from stdout.
+MCP Tool Test Script
+--------------------
+This script tests MCP tool calls by sending MCP-formatted requests
+to the server process via stdin and reading responses from stdout.
 
 Usage:
   - Start the MCP server in a separate terminal using:
-    `docker-compose up -d`
+    `docker-compose --profile mcp up -d`
   - Run this script:
     `python test_mcp_adapter.py`
 
@@ -22,7 +22,7 @@ import time
 
 def run_mcp_command(command, args=None):
     """
-    Run an MCP command by sending it to the adapter via stdin
+    Run an MCP command by sending it to the server via stdin
     and reading the response from stdout.
     
     Args:
@@ -30,7 +30,7 @@ def run_mcp_command(command, args=None):
         args: The arguments for the command (as a dictionary)
         
     Returns:
-        The parsed JSON response from the MCP adapter
+        The parsed JSON response from the MCP server
     """
     if args is None:
         args = {}
@@ -48,8 +48,7 @@ def run_mcp_command(command, args=None):
     # This is similar to how Claude Desktop would run the command
     cmd = [
         "docker", "run", "-i", "--rm", "--network=host",
-        "-e", "RUNTIME_MODE=mcp",
-        "nova-memory-mcp_mcp-server"
+        "nova-memory-mcp_mcp-server:latest"
     ]
     
     try:
@@ -68,8 +67,8 @@ def run_mcp_command(command, args=None):
         process.stdin.write(request_json + "\n")
         process.stdin.flush()
         
-        # Wait for the process to initialize (give the adapter time to start)
-        print("Waiting for MCP adapter to initialize...")
+        # Wait for the process to initialize (give the server time to start)
+        print("Waiting for MCP server to initialize...")
         time.sleep(3)
         
         # Read the response from stdout with timeout
@@ -109,7 +108,7 @@ def run_mcp_command(command, args=None):
             except json.JSONDecodeError as e:
                 response = {"error": f"Failed to parse JSON response: {e}", "raw_output": stdout_output}
         else:
-            response = {"error": "No response received from MCP adapter", "raw_output": ""}
+            response = {"error": "No response received from MCP server", "raw_output": ""}
         
         # Close the process
         process.stdin.close()
@@ -152,9 +151,9 @@ def test_upsert_memory():
         "test": True
     }
     
-    # Call the upsert endpoint
+    # Call the upsert tool
     response = run_mcp_command("upsert_memory", {
-        "text": memory_content,
+        "content": memory_content,
         "id": memory_id,
         "metadata": metadata
     })
@@ -182,7 +181,7 @@ def test_delete_memory(memory_id):
     print(f"\n=== Testing Delete Memory: '{memory_id}' ===")
     
     response = run_mcp_command("delete_memory", {
-        "id": memory_id
+        "memory_id": memory_id
     })
     
     print(f"Response: {json.dumps(response, indent=2)}")
@@ -216,5 +215,5 @@ def run_all_tests():
 
 
 if __name__ == "__main__":
-    print("Starting MCP Adapter tests...")
+    print("Starting MCP tool tests...")
     run_all_tests()

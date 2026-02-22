@@ -93,7 +93,7 @@ async def query_memory(ctx: Context, query: str) -> Dict[str, Any]:
 async def upsert_memory(ctx: Context, content: str, id: Optional[str] = None, metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
     Adds or updates a memory item. Generates embeddings and stores in Pinecone and Neo4j.
-    If 'id' is not provided, a new UUID will be generated.
+    If 'id' is not provided, MemoryService generates a deterministic ID.
     """
     logger.info(f"Tool 'upsert_memory' called. ID: {id}, Content: '{content[:50]}...'")
     memory_service = ctx.request_context.lifespan_context.memory_service
@@ -101,10 +101,16 @@ async def upsert_memory(ctx: Context, content: str, id: Optional[str] = None, me
         metadata = {} # Ensure metadata is a dict
 
     try:
-        # Assuming add_memory handles ID generation if None and returns the final ID
-        item_id = await memory_service.add_memory(id, content, metadata)
-        logger.info(f"Upsert successful for ID: {item_id}")
-        return {"id": item_id, "status": "success"}
+        item_id = await memory_service.perform_upsert(
+            content=content,
+            memory_id=id,
+            metadata=metadata
+        )
+        if item_id:
+            logger.info(f"Upsert successful for ID: {item_id}")
+            return {"id": item_id, "status": "success"}
+        logger.warning("Upsert failed: MemoryService returned no item ID.")
+        return {"error": "Failed to upsert memory item."}
     except Exception as e:
         logger.error(f"Error during upsert_memory: {e}", exc_info=True)
         return {"error": f"Failed to upsert memory: {str(e)}"}
@@ -117,8 +123,7 @@ async def delete_memory(ctx: Context, memory_id: str) -> Dict[str, Any]:
     logger.info(f"Tool 'delete_memory' called for ID: {memory_id}")
     memory_service = ctx.request_context.lifespan_context.memory_service
     try:
-        # Assuming delete_memory returns True/False or raises exception
-        success = await memory_service.delete_memory(memory_id)
+        success = await memory_service.perform_delete(memory_id)
         if success:
              logger.info(f"Delete successful for ID: {memory_id}")
              return {"id": memory_id, "status": "deleted"}

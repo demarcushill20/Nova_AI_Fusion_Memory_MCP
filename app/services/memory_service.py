@@ -48,7 +48,7 @@ class MemoryService:
         """
         if self._initialized:
             logger.info("MemoryService already initialized.")
-            return
+            return True
 
         logger.info("Starting asynchronous initialization of MemoryService...")
         init_tasks = {

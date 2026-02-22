@@ -4,12 +4,8 @@ This document explains how to set up and use the Nova AI Memory MCP Server with 
 
 ## Architecture Overview
 
-The Nova AI Memory MCP Server has been containerized to support two operating modes:
-
-1. **API Mode** - Exposes a REST API on port 8000 for direct HTTP requests (default mode)
-2. **MCP Mode** - Communicates via stdin/stdout following the Model Context Protocol (MCP) for Claude Desktop integration
-
-The MCP Mode uses an adapter layer that translates between the MCP protocol and the internal REST API, allowing seamless integration with Claude Desktop while maintaining the original API functionality.
+The current containerized deployment runs a single **MCP stdio server** powered by `FastMCP` (`mcp_server.py`).
+There is no runtime adapter layer required for MCP operation.
 
 ## Prerequisites
 
@@ -21,23 +17,7 @@ The MCP Mode uses an adapter layer that translates between the MCP protocol and 
 
 ### Starting the Nova Memory MCP Server
 
-#### Option 1: Running in API Mode (Default)
-
-To run the server in API mode (exposing the REST API on port 8000):
-
-```bash
-docker-compose up -d
-```
-
-This will start two containers:
-- `nova_neo4j_db` - Neo4j database
-- `nova_mcp_server_api` - The Nova Memory server in API mode
-
-You can access the API directly at `http://localhost:8000/memory/health` to check if it's running.
-
-#### Option 2: Running in MCP Mode (For Claude Desktop)
-
-To run the server in MCP mode for Claude Desktop integration:
+To run the MCP server for Claude Desktop integration:
 
 ```bash
 docker-compose --profile mcp up -d
@@ -45,7 +25,7 @@ docker-compose --profile mcp up -d
 
 This will start two containers:
 - `nova_neo4j_db` - Neo4j database
-- `nova_mcp_server` - The Nova Memory server in MCP mode
+- `nova_mcp_server` - The Nova Memory MCP server (stdio transport)
 
 ## Configuring Claude Desktop
 
@@ -63,7 +43,15 @@ To use the Nova Memory MCP Server with Claude Desktop, you need to update your C
   "mcpServers": {
     "nova-memory": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "--network=host", "nova-memory-mcp_mcp-server"],
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network=nova-memory-mcp_nova_network",
+        "--env-file",
+        "c:/path/to/your/nova-memory-mcp/.env",
+        "nova-memory-mcp_mcp-server:latest"
+      ],
       "disabled": false,
       "autoApprove": [],
       "alwaysAllow": [
@@ -77,6 +65,8 @@ To use the Nova Memory MCP Server with Claude Desktop, you need to update your C
 }
 ```
 
+Update the `--network` and `--env-file` values for your local project path and Docker network name.
+
 3. Restart Claude Desktop to apply the changes.
 
 ## Available MCP Tools
@@ -86,8 +76,8 @@ The Nova Memory MCP Server provides the following tools for Claude Desktop:
 | Tool Name | Description | Parameters |
 |-----------|-------------|------------|
 | `query_memory` | Query the memory system | `{"query": "your query text"}` |
-| `upsert_memory` | Add or update a memory item | `{"text": "memory content", "id": "optional-id", "metadata": {}}` |
-| `delete_memory` | Delete a memory item by ID | `{"id": "memory-id-to-delete"}` |
+| `upsert_memory` | Add or update a memory item | `{"content": "memory content", "id": "optional-id", "metadata": {}}` |
+| `delete_memory` | Delete a memory item by ID | `{"memory_id": "memory-id-to-delete"}` |
 | `check_health` | Check the health of the memory system | `{}` |
 
 ## Example Usage in Claude Desktop
@@ -126,9 +116,5 @@ docker build -t nova-memory-mcp:latest .
 
 ## Advanced Configuration
 
-The Docker container accepts the following environment variables:
-
-- `RUNTIME_MODE` - Set to `api` for REST API mode or `mcp` for Claude Desktop integration
-- `PORT` - Port number for the API server (default: 8000)
-
-You can customize these in the `.env` file or in the `docker-compose.yml` file.
+Configure service credentials and model/database settings in `.env`.
+The MCP server runs directly as `python mcp_server.py` in the container entrypoint.
