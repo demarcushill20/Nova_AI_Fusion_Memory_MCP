@@ -31,7 +31,7 @@ services:
   # Combined MCP Server (using mcp-python-sdk)
   # This service now directly handles MCP communication via stdio
   nova-memory:
-    image: nova-memory-mcp_mcp-server:latest # Use the explicitly tagged image
+    image: nova-memory-mcp:latest # Stable tag independent of compose project naming
     build:
       context: .
       dockerfile: Dockerfile # Uses the updated Dockerfile running mcp_server.py

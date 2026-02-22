@@ -50,7 +50,7 @@ To use the Nova Memory MCP Server with Claude Desktop, you need to update your C
         "--network=nova-memory-mcp_nova_network",
         "--env-file",
         "c:/path/to/your/nova-memory-mcp/.env",
-        "nova-memory-mcp_mcp-server:latest"
+        "nova-memory-mcp:latest"
       ],
       "disabled": false,
       "autoApprove": [],

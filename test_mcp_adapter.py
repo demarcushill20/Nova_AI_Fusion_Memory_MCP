@@ -48,7 +48,7 @@ def run_mcp_command(command, args=None):
     # This is similar to how Claude Desktop would run the command
     cmd = [
         "docker", "run", "-i", "--rm", "--network=host",
-        "nova-memory-mcp_mcp-server:latest"
+        "nova-memory-mcp:latest"
     ]
     
     try:

@@ -123,7 +123,7 @@ Add or update the `nova-memory` server entry:
         "--rm",
         "--env-file",
         ".env",
-        "nova-memory-mcp_mcp-server:latest"
+        "nova-memory-mcp:latest"
       ],
       "cwd": "c:/path/to/your/nova-memory-mcp",  // Replace with your actual path
       "disabled": false,
@@ -209,7 +209,7 @@ Add or update the `nova-memory` server entry:
         "--network=nova-memory-mcp_nova_network",
         "--env-file",
         "c:/path/to/your/nova-memory-mcp/.env",
-        "nova-memory-mcp_mcp-server:latest"
+        "nova-memory-mcp:latest"
       ],
       "cwd": "c:/path/to/your/nova-memory-mcp",
       "transportType": "stdio",
