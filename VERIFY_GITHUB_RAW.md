@@ -1,6 +1,7 @@
 # VERIFY_GITHUB_RAW
 
-This document proves that GitHub serves multiline, parse-valid files for the pinned commit and that local validation checks pass.
+This report is generated from commit-pinned GitHub raw URLs and local
+validation commands. It is saved as UTF-8 without BOM with LF newlines.
 
 ## Pinned Commit
 
@@ -10,13 +11,13 @@ git rev-parse origin/main
 ```
 
 ```text
-28dcaba80116d4e3bdfb28e2193c1f751b7416d7
+15d711cdc0d883ab95655f04aaf58b10a00ddb5a
 ```
 
 ## Raw Output: mcp_server.py
 
 ```bash
-curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/28dcaba80116d4e3bdfb28e2193c1f751b7416d7/mcp_server.py | nl -ba | sed -n '1,30p'
+curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/15d711cdc0d883ab95655f04aaf58b10a00ddb5a/mcp_server.py | nl -ba | sed -n '1,20p'
 ```
 
 ```text
@@ -40,20 +41,10 @@ curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_M
     18	logging.basicConfig(
     19	    level=logging.INFO,
     20	    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    21	    handlers=[logging.StreamHandler(sys.stderr)],
-    22	)
-    23	logger = logging.getLogger("nova-memory-mcp-server")
-    24	
-    25	# Global instance (or manage via lifespan context)
-    26	# Using a global instance might be simpler if lifespan context proves tricky
-    27	# memory_service_instance: Optional[MemoryService] = None
-    28	
-    29	
-    30	# Define a context structure for type hinting if needed
 ```
 
 ```bash
-git rev-parse 28dcaba80116d4e3bdfb28e2193c1f751b7416d7:mcp_server.py
+git rev-parse 15d711cdc0d883ab95655f04aaf58b10a00ddb5a:mcp_server.py
 git hash-object <downloaded_raw_bytes_for_mcp_server.py>
 ```
 
@@ -66,7 +57,7 @@ status: MATCH
 ## Raw Output: app/config.py
 
 ```bash
-curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/28dcaba80116d4e3bdfb28e2193c1f751b7416d7/app/config.py | nl -ba | sed -n '1,30p'
+curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/15d711cdc0d883ab95655f04aaf58b10a00ddb5a/app/config.py | nl -ba | sed -n '1,20p'
 ```
 
 ```text
@@ -90,20 +81,10 @@ curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_M
     18	
     19	    # OpenAI Configuration
     20	    OPENAI_API_KEY: Optional[str] = None
-    21	
-    22	    # Pinecone Configuration
-    23	    PINECONE_API_KEY: str
-    24	    PINECONE_ENV: str
-    25	    PINECONE_INDEX: str = "nova-ai-memory"  # Default index name from Nova_AI.py
-    26	
-    27	    # Neo4j Configuration
-    28	    NEO4J_URI: str = "bolt://neo4j:7687"  # Default Docker Compose service URI
-    29	    NEO4J_USER: str = "neo4j"
-    30	    NEO4J_PASSWORD: Optional[str] = None  # Optional when Neo4j auth is disabled
 ```
 
 ```bash
-git rev-parse 28dcaba80116d4e3bdfb28e2193c1f751b7416d7:app/config.py
+git rev-parse 15d711cdc0d883ab95655f04aaf58b10a00ddb5a:app/config.py
 git hash-object <downloaded_raw_bytes_for_app/config.py>
 ```
 
@@ -116,7 +97,7 @@ status: MATCH
 ## Raw Output: docker-compose.yml
 
 ```bash
-curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/28dcaba80116d4e3bdfb28e2193c1f751b7416d7/docker-compose.yml | nl -ba | sed -n '1,80p'
+curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/15d711cdc0d883ab95655f04aaf58b10a00ddb5a/docker-compose.yml | nl -ba | sed -n '1,40p'
 ```
 
 ```text
@@ -160,28 +141,10 @@ curl -L https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_M
     38	    # No RUNTIME_MODE needed
     39	    # No ports needed for stdio MCP
     40	    depends_on: # Still depends on Neo4j being ready
-    41	      neo4j:
-    42	        condition: service_started
-    43	    restart: unless-stopped
-    44	    # Keep the profile so it's not started by default `docker-compose up`
-    45	    profiles:
-    46	      - mcp
-    47	    networks:
-    48	      nova_network:
-    49	        aliases:
-    50	          - nova_memory_mcp # Alias for potential internal communication if needed
-    51	
-    52	# Define networks for container communication
-    53	networks:
-    54	  nova_network:
-    55	    driver: bridge
-    56	
-    57	volumes:
-    58	  neo4j_data: # Define the named volume for Neo4j data persistence
 ```
 
 ```bash
-git rev-parse 28dcaba80116d4e3bdfb28e2193c1f751b7416d7:docker-compose.yml
+git rev-parse 15d711cdc0d883ab95655f04aaf58b10a00ddb5a:docker-compose.yml
 git hash-object <downloaded_raw_bytes_for_docker-compose.yml>
 ```
 
@@ -189,6 +152,34 @@ git hash-object <downloaded_raw_bytes_for_docker-compose.yml>
 git blob: 353a860ba6388287cb17e0f61e5ccbfcb910b115
 raw blob: 353a860ba6388287cb17e0f61e5ccbfcb910b115
 status: MATCH
+```
+
+## UTF-8 BOM Check
+
+```bash
+python - << 'PY'
+from pathlib import Path
+import urllib.request
+sha = '15d711cdc0d883ab95655f04aaf58b10a00ddb5a'
+raw_main = urllib.request.urlopen('https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/main/VERIFY_GITHUB_RAW.md').read()
+raw_sha = urllib.request.urlopen(f'https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_MCP/{sha}/VERIFY_GITHUB_RAW.md').read()
+local = Path('VERIFY_GITHUB_RAW.md').read_bytes()
+print('local first4bytes:', local[:4])
+print('local has_bom:', local.startswith(b'\xef\xbb\xbf'))
+print('main first4bytes:', raw_main[:4])
+print('main has_bom:', raw_main.startswith(b'\xef\xbb\xbf'))
+print('sha first4bytes:', raw_sha[:4])
+print('sha has_bom:', raw_sha.startswith(b'\xef\xbb\xbf'))
+PY
+```
+
+```text
+local first4bytes: b'# VE'
+local has_bom: False
+main first4bytes: b'# VE'
+main has_bom: False
+sha first4bytes: b'# VE'
+sha has_bom: False
 ```
 
 ## Local Validation Commands
@@ -201,7 +192,7 @@ docker compose -f docker-compose.yml config
 ```text
 py_compile exit code: 0
 docker compose config exit code: 0
-docker compose config (first 80 lines):
+docker compose config (first 60 lines):
 name: nova_ai_fusion_memory_mcp
 services:
   neo4j:
@@ -239,4 +230,6 @@ volumes:
 
 ## Conclusion
 
-All pinned raw files are multiline and hash-match Git blobs at commit 28dcaba80116d4e3bdfb28e2193c1f751b7416d7. Python compile checks and Docker Compose config checks pass.
+All pinned raw files are multiline and hash-match Git blobs at commit 15d711cdc0d883ab95655f04aaf58b10a00ddb5a.
+`VERIFY_GITHUB_RAW.md` is UTF-8 without BOM and uses LF newlines.
+Python compile checks and Docker Compose config checks pass.

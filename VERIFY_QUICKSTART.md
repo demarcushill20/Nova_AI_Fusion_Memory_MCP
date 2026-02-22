@@ -20,3 +20,13 @@ curl -L "https://raw.githubusercontent.com/demarcushill20/Nova_AI_Fusion_Memory_
 python -m py_compile mcp_server.py app/config.py
 docker compose -f docker-compose.yml config
 ```
+
+```bash
+python - << 'PY'
+from pathlib import Path
+p = "VERIFY_GITHUB_RAW.md"
+b = Path(p).read_bytes()[:4]
+print("first4bytes:", b)
+print("has_bom:", b.startswith(b"\xef\xbb\xbf"))
+PY
+```
