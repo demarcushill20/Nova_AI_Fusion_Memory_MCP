@@ -4,6 +4,8 @@ services:
   neo4j:
     image: neo4j:5.19 # Use a specific stable version
     container_name: nova_neo4j_db # Renamed container to avoid conflicts
+    env_file:
+      - .env
     ports:
       - "7474:7474" # HTTP interface
       - "7687:7687" # Bolt interface (for driver connection)
@@ -13,8 +15,8 @@ services:
       # - ./neo4j/plugins:/plugins
       # - ./neo4j/logs:/logs
     environment:
-      # Disable authentication for testing
-      NEO4J_AUTH: none
+      # Enable authentication using the shared .env password
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
       # Optional: Configure memory limits if needed
       # NEO4J_server_memory_pagecache_size: 1G
       # NEO4J_server_memory_heap_initial__size: 1G

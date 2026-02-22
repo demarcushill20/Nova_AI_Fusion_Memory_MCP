@@ -139,7 +139,17 @@ Add or update the `nova-memory` server entry:
           "name": "query_memory",
           "description": "Query the memory system",
           "inputSchema": {
-            "type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]
+            "type": "object",
+            "properties": {
+              "query": {"type": "string"},
+              "top_k_vector": {"type": "integer", "minimum": 1, "default": 50},
+              "top_k_final": {"type": "integer", "minimum": 1, "default": 15},
+              "category": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null},
+              "tags": {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}], "default": null},
+              "min_score": {"anyOf": [{"type": "number"}, {"type": "null"}], "default": null},
+              "run_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null}
+            },
+            "required": ["query"]
           }
         },
         {
@@ -219,7 +229,13 @@ Add or update the `nova-memory` server entry:
           "inputSchema": {
             "type": "object",
             "properties": {
-              "query": {"type": "string", "description": "The query text to search for in memory"}
+              "query": {"type": "string", "description": "The query text to search for in memory"},
+              "top_k_vector": {"type": "integer", "minimum": 1, "default": 50},
+              "top_k_final": {"type": "integer", "minimum": 1, "default": 15},
+              "category": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null},
+              "tags": {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}], "default": null},
+              "min_score": {"anyOf": [{"type": "number"}, {"type": "null"}], "default": null},
+              "run_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null}
             },
             "required": ["query"]
           }

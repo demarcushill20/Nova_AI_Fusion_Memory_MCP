@@ -68,22 +68,123 @@ mcp = FastMCP(
     # Alternatively, rely on requirements.txt being installed in the environment
 )
 
+# --- Internal Helpers ---
+
+def _resolve_result_score(result: Dict[str, Any]) -> Optional[float]:
+    """Extracts the best available score field from a memory result."""
+    for key in ("rerank_score", "rrf_score", "fusion_score", "score"):
+        raw = result.get(key)
+        if raw is None:
+            continue
+        try:
+            return float(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _normalize_tags(value: Any) -> set[str]:
+    """Normalizes metadata tags into a lowercase set for matching."""
+    if value is None:
+        return set()
+    if isinstance(value, str):
+        stripped = value.strip().lower()
+        return {stripped} if stripped else set()
+    if isinstance(value, list):
+        tags = set()
+        for item in value:
+            if isinstance(item, str) and item.strip():
+                tags.add(item.strip().lower())
+        return tags
+    return set()
+
+
+def _filter_query_results(
+    results: List[Dict[str, Any]],
+    category: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    min_score: Optional[float] = None,
+    run_id: Optional[str] = None
+) -> List[Dict[str, Any]]:
+    """Applies metadata and score filtering to fused memory query results."""
+    normalized_category = category.strip().lower() if isinstance(category, str) and category.strip() else None
+    normalized_run_id = run_id.strip() if isinstance(run_id, str) and run_id.strip() else None
+    requested_tags = _normalize_tags(tags) if tags else set()
+
+    filtered: List[Dict[str, Any]] = []
+    for result in results:
+        metadata = result.get("metadata")
+        metadata = metadata if isinstance(metadata, dict) else {}
+
+        if normalized_category:
+            item_category = str(metadata.get("category", "")).strip().lower()
+            if item_category != normalized_category:
+                continue
+
+        if normalized_run_id:
+            item_run_id = str(metadata.get("run_id", "")).strip()
+            if item_run_id != normalized_run_id:
+                continue
+
+        if requested_tags:
+            item_tags = _normalize_tags(metadata.get("tags"))
+            if not requested_tags.issubset(item_tags):
+                continue
+
+        if min_score is not None:
+            score = _resolve_result_score(result)
+            if score is None or score < min_score:
+                continue
+
+        filtered.append(result)
+
+    return filtered
+
+
 # --- Tool Definitions ---
 
 @mcp.tool()
-async def query_memory(ctx: Context, query: str) -> Dict[str, Any]:
+async def query_memory(
+    ctx: Context,
+    query: str,
+    top_k_vector: int = 50,
+    top_k_final: int = 15,
+    category: Optional[str] = None,
+    tags: Optional[List[str]] = None,
+    min_score: Optional[float] = None,
+    run_id: Optional[str] = None
+) -> Dict[str, Any]:
     """
     Retrieves relevant memory items based on a query text.
     Uses vector search (Pinecone) and graph search (Neo4j), fuses results, and reranks.
+    Supports optional retrieval controls and metadata filtering.
     """
-    logger.info(f"Tool 'query_memory' called with query: '{query}'")
+    logger.info(
+        f"Tool 'query_memory' called with query='{query}', top_k_vector={top_k_vector}, "
+        f"top_k_final={top_k_final}, category={category}, tags={tags}, min_score={min_score}, run_id={run_id}"
+    )
     memory_service = ctx.request_context.lifespan_context.memory_service
     try:
-        # Assuming perform_query returns a list of dicts suitable for the API
-        results = await memory_service.perform_query(query)
-        logger.info(f"Query returned {len(results)} results.")
+        if top_k_vector < 1 or top_k_final < 1:
+            return {"error": "top_k_vector and top_k_final must be >= 1"}
+
+        results = await memory_service.perform_query(
+            query_text=query,
+            top_k_vector=top_k_vector,
+            top_k_final=top_k_final
+        )
+        filtered_results = _filter_query_results(
+            results=results,
+            category=category,
+            tags=tags,
+            min_score=min_score,
+            run_id=run_id
+        )
+        logger.info(
+            f"Query returned {len(results)} results before filtering, {len(filtered_results)} after filtering."
+        )
         # FastMCP automatically serializes the return value (dict, list, primitives) to JSON
-        return {"results": results}
+        return {"results": filtered_results}
     except Exception as e:
         logger.error(f"Error during query_memory: {e}", exc_info=True)
         # Return an error structure that MCP client can understand

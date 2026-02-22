@@ -29,7 +29,13 @@
           "inputSchema": {
             "type": "object",
             "properties": {
-              "query": {"title": "Query", "type": "string"}
+              "query": {"title": "Query", "type": "string"},
+              "top_k_vector": {"title": "Top K Vector", "type": "integer", "minimum": 1, "default": 50},
+              "top_k_final": {"title": "Top K Final", "type": "integer", "minimum": 1, "default": 15},
+              "category": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Category"},
+              "tags": {"anyOf": [{"type": "array", "items": {"type": "string"}}, {"type": "null"}], "default": null, "title": "Tags"},
+              "min_score": {"anyOf": [{"type": "number"}, {"type": "null"}], "default": null, "title": "Min Score"},
+              "run_id": {"anyOf": [{"type": "string"}, {"type": "null"}], "default": null, "title": "Run Id"}
             },
             "required": ["query"],
             "title": "query_memoryArguments"
