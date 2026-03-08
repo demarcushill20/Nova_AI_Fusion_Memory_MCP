@@ -120,7 +120,12 @@ class MemoryService:
 
     async def perform_query(self, query_text: str, top_k_vector: int = 50, top_k_final: int = 15) -> List[Dict[str, Any]]:
         """
-        Performs a fused memory query using the full pipeline.
+        Performs a memory query using routing-aware retrieval.
+
+        Phase 4 routing modes:
+        - TEMPORAL: pure temporal retrieval (event_seq DESC, no embeddings)
+        - TEMPORAL_SEMANTIC: temporal window first, then semantic refinement
+        - VECTOR/GRAPH/HYBRID: existing semantic pipeline (unchanged)
 
         Args:
             query_text: The user's query.
@@ -128,45 +133,93 @@ class MemoryService:
             top_k_final: Number of final results to return after reranking.
 
         Returns:
-            A list of relevant memory items, sorted by relevance.
+            A list of relevant memory items, sorted by relevance or recency.
         """
         if not self._initialized:
             logger.error("MemoryService not initialized. Cannot perform query.")
-            # raise ServiceUnavailableError("MemoryService is not ready.") # Or return empty list
             return []
         if not query_text:
             logger.warning("Received empty query text.")
             return []
 
-        logger.info(f"Performing fused query for: '{query_text[:100]}...'")
+        logger.info(f"Performing query for: '{query_text[:100]}...'")
 
-        # 1. Query Routing (for logging/potential future use)
+        # 1. Query Routing — determines retrieval strategy
         routing_mode = self.query_router.route(query_text)
         logger.info(f"Query classified as: {routing_mode.name}")
 
-        # 2. Get Query Embedding (Run sync function in thread)
+        # 2. Route to appropriate retrieval path
+        if routing_mode == RoutingMode.TEMPORAL:
+            # Pure temporal retrieval — no embeddings needed
+            logger.info("Using TEMPORAL path: pure recency retrieval.")
+            return await self.get_recent_events(n=top_k_final)
+
+        elif routing_mode == RoutingMode.TEMPORAL_SEMANTIC:
+            # Stage 1: Get temporal window
+            logger.info("Using TEMPORAL_SEMANTIC path: temporal window + semantic refinement.")
+            recent = await self.get_recent_events(n=top_k_vector)
+            if not recent:
+                logger.info("No recent events found, falling back to full semantic pipeline.")
+                return await self._semantic_query(query_text, top_k_vector, top_k_final)
+
+            # Stage 2: Semantic search constrained to the temporal window
+            min_seq = min(
+                r.get("metadata", {}).get("event_seq", 0) for r in recent
+            )
+            logger.info(f"Temporal window: event_seq >= {min_seq}. Running semantic within window.")
+            return await self._semantic_query(
+                query_text, top_k_vector, top_k_final,
+                pinecone_filter={"event_seq": {"$gte": min_seq}},
+            )
+
+        else:
+            # Existing behavior: full semantic pipeline (VECTOR, GRAPH, HYBRID)
+            return await self._semantic_query(query_text, top_k_vector, top_k_final)
+
+    async def _semantic_query(
+        self,
+        query_text: str,
+        top_k_vector: int = 50,
+        top_k_final: int = 15,
+        pinecone_filter: Optional[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Full semantic retrieval pipeline: embed → vector+graph → RRF → rerank.
+
+        Extracted from the original perform_query for reuse by both the
+        standard and temporal-semantic paths.
+
+        Args:
+            query_text: The user's query.
+            top_k_vector: Number of initial results to fetch.
+            top_k_final: Number of final results to return.
+            pinecone_filter: Optional Pinecone metadata filter to constrain the search.
+        """
+        # Get Query Embedding
         try:
             query_embedding = await asyncio.to_thread(get_embedding, query_text, self.embedding_model_name)
-            if not any(query_embedding): # Check if it's a zero vector (error indicator)
+            if not any(query_embedding):
                  logger.error("Failed to get valid query embedding. Aborting query.")
                  return []
         except Exception as e:
             logger.error(f"Error getting query embedding: {e}", exc_info=True)
             return []
 
-        # 3. Parallel Retrieval (Vector + Graph)
+        # Parallel Retrieval (Vector + Graph)
         vector_results = []
         graph_results = []
         try:
-            # We always retrieve from both as per plan, regardless of routing_mode
-            logger.debug(f"Initiating parallel retrieval (Vector k={top_k_vector}, Graph k={top_k_vector})...") # Graph k is indicative
+            logger.debug(f"Initiating parallel retrieval (Vector k={top_k_vector}, Graph k={top_k_vector})...")
             results = await asyncio.gather(
-                asyncio.to_thread(self.pinecone_client.query_vector, query_embedding, top_k=top_k_vector), # Wrap sync call
-                self.graph_client.query_graph(query_text, top_k=top_k_vector), # Pass query_text for potential graph search strategies
+                asyncio.to_thread(
+                    self.pinecone_client.query_vector,
+                    query_embedding,
+                    top_k=top_k_vector,
+                    filter=pinecone_filter,
+                ),
+                self.graph_client.query_graph(query_text, top_k=top_k_vector),
                 return_exceptions=True
             )
 
-            # Process results, handling potential errors
             if isinstance(results[0], list):
                 vector_results = results[0]
                 logger.info(f"Vector retrieval returned {len(vector_results)} results.")
@@ -181,30 +234,26 @@ class MemoryService:
 
         except Exception as e:
             logger.error(f"Error during parallel retrieval: {e}", exc_info=True)
-            # Continue with potentially partial results if possible
 
-        # 4. Hybrid Merging (RRF)
+        # Hybrid Merging (RRF)
         if not vector_results and not graph_results:
              logger.warning("No results from either vector or graph store.")
              return []
 
         try:
             logger.debug(f"Merging {len(vector_results)} vector and {len(graph_results)} graph results...")
-            # Run sync merge function in thread
             fused_results = await asyncio.to_thread(
                 self.hybrid_merger.merge_results, vector_results, graph_results
             )
             logger.info(f"Hybrid merging complete. {len(fused_results)} unique results after RRF.")
         except Exception as e:
             logger.error(f"Error during hybrid merging: {e}", exc_info=True)
-            # Fallback: maybe just return vector results? Or empty? Returning empty for now.
             return []
 
-        # 5. Reranking
+        # Reranking
         if self.reranker and self._reranker_loaded and fused_results:
             try:
                 logger.debug(f"Reranking {len(fused_results)} fused results...")
-                # Reranker method is already async
                 final_results = await self.reranker.rerank(query_text, fused_results, top_n=top_k_final)
                 logger.info(f"Reranking complete. Returning top {len(final_results)} results.")
             except Exception as e:
@@ -212,11 +261,10 @@ class MemoryService:
                     f"Error during reranking: {e}. Returning fused results without reranking.",
                     exc_info=True,
                 )
-                # Fallback to fused results if reranking fails
                 final_results = fused_results[:top_k_final]
         else:
             logger.info("Reranker disabled or no results to rerank. Returning top fused results.")
-            final_results = fused_results[:top_k_final] # Return top N fused results
+            final_results = fused_results[:top_k_final]
 
         return final_results
 

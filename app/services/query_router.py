@@ -8,6 +8,8 @@ class RoutingMode(Enum):
     VECTOR = auto()
     GRAPH = auto()
     HYBRID = auto() # Default: Query both vector and graph stores
+    TEMPORAL = auto()          # Recency-first: pure temporal retrieval
+    TEMPORAL_SEMANTIC = auto() # Temporal window + semantic refinement
 
 class QueryRouter:
     """
@@ -26,6 +28,14 @@ class QueryRouter:
             "how does", "why does", "compare", "contrast", "network of",
             "associated with", "interact with"
         ]
+        self.temporal_keywords = [
+            "last", "latest", "most recent", "recently", "just did",
+            "before we ended", "previous session", "what did we do",
+            "last time", "earlier today", "yesterday", "last session",
+            "what happened", "last thing", "final", "end of session",
+            "current state", "where were we", "pick up where",
+            "continuation", "resume", "catch up",
+        ]
         logger.info("QueryRouter initialized with rule-based keyword matching.")
 
     def route(self, query_text: str) -> RoutingMode:
@@ -41,34 +51,32 @@ class QueryRouter:
         query_lower = query_text.lower()
         is_vector_query = any(keyword in query_lower for keyword in self.vector_keywords)
         is_graph_query = any(keyword in query_lower for keyword in self.graph_keywords)
-        # --- DEBUG PRINT ---
-        if "connections between ai and machine learning" in query_lower:
-            print(f"[DEBUG] Query: '{query_text}'")
-            print(f"[DEBUG] is_vector_query: {is_vector_query}")
-            print(f"[DEBUG] is_graph_query: {is_graph_query}")
-        # --- END DEBUG PRINT ---
+        is_temporal_query = any(keyword in query_lower for keyword in self.temporal_keywords)
 
         routing_decision: RoutingMode
 
-        if is_vector_query and is_graph_query:
-            # Keywords for both types found, default to hybrid
+        # Temporal detection takes priority — recency intent is distinct from
+        # semantic or graph intent and should never be downgraded to HYBRID.
+        if is_temporal_query and (is_vector_query or is_graph_query):
+            # Temporal + semantic/graph keywords → two-stage retrieval
+            routing_decision = RoutingMode.TEMPORAL_SEMANTIC
+            logger.debug(f"Routing query (Temporal-Semantic): '{query_text}'")
+        elif is_temporal_query:
+            # Pure temporal query — no semantic similarity needed
+            routing_decision = RoutingMode.TEMPORAL
+            logger.debug(f"Routing query (Temporal): '{query_text}'")
+        elif is_vector_query and is_graph_query:
             routing_decision = RoutingMode.HYBRID
             logger.debug(f"Routing query (Hybrid - keywords for both): '{query_text}'")
         elif is_vector_query:
-            # Only vector keywords found
             routing_decision = RoutingMode.VECTOR
             logger.debug(f"Routing query (Vector): '{query_text}'")
         elif is_graph_query:
-            # Only graph keywords found
             routing_decision = RoutingMode.GRAPH
             logger.debug(f"Routing query (Graph): '{query_text}'")
         else:
-            # No specific keywords found, default to hybrid
             routing_decision = RoutingMode.HYBRID
             logger.debug(f"Routing query (Hybrid - default): '{query_text}'")
-
-        # TODO: Future enhancement - use LLM for more nuanced classification
-        # e.g., call OpenAI API with a prompt to classify the query intent.
 
         return routing_decision
 
