@@ -106,6 +106,13 @@ class GraphClient:
                 logger.info(f"Ensuring index on :{NEO4J_NODE_LABEL}(event_seq)...")
                 await session.run(event_seq_index_query)
                 logger.info(f"Index on :{NEO4J_NODE_LABEL}(event_seq) ensured.")
+                # Phase 5: Session node constraint
+                session_constraint = "CREATE CONSTRAINT IF NOT EXISTS FOR (s:Session) REQUIRE s.session_id IS UNIQUE"
+                session_seq_index = "CREATE INDEX IF NOT EXISTS FOR (s:Session) ON (s.last_event_seq)"
+                logger.info("Ensuring unique constraint on :Session(session_id)...")
+                await session.run(session_constraint)
+                await session.run(session_seq_index)
+                logger.info("Session constraints ensured.")
         except Exception as e:
             logger.error(f"❌ Failed to ensure Neo4j constraint: {e}", exc_info=True)
             # Continue execution, but log the error
@@ -326,6 +333,233 @@ class GraphClient:
         except Exception as e:
             logger.error(f"Failed to query recent events from graph: {e}", exc_info=True)
             return []
+
+    # --- Phase 5: Session Graph Model ---
+
+    async def create_session_node(
+        self, session_id: str, started_at: Optional[str] = None, **kwargs
+    ) -> bool:
+        """Create or merge a Session node in Neo4j.
+
+        Args:
+            session_id: Unique session identifier.
+            started_at: ISO 8601 start time.
+            **kwargs: Additional properties (ended_at, last_event_seq, summary, project, thread_id).
+
+        Returns:
+            True if successful, False otherwise.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot create session node.")
+            return False
+
+        props: Dict[str, Any] = {"session_id": session_id}
+        if started_at:
+            props["started_at"] = started_at
+        for key in ("ended_at", "last_event_seq", "summary", "project", "thread_id"):
+            if key in kwargs and kwargs[key] is not None:
+                props[key] = kwargs[key]
+
+        cypher = """
+        MERGE (s:Session {session_id: $session_id})
+        SET s += $props
+        RETURN s.session_id AS id
+        """
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result = await session.run(cypher, {"session_id": session_id, "props": props})
+                record = await result.single()
+                await result.consume()
+                if record:
+                    logger.info(f"Session node created/merged: {session_id}")
+                    return True
+                return False
+        except Exception as e:
+            logger.error(f"Failed to create session node {session_id}: {e}", exc_info=True)
+            return False
+
+    async def link_event_to_session(self, event_id: str, session_id: str) -> bool:
+        """Create INCLUDES edge from Session to event node.
+
+        Args:
+            event_id: The entity_id of the :base event node.
+            session_id: The session_id of the :Session node.
+
+        Returns:
+            True if edge was created, False otherwise.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot link event to session.")
+            return False
+
+        cypher = f"""
+        MATCH (s:Session {{session_id: $session_id}})
+        MATCH (e:{NEO4J_NODE_LABEL} {{entity_id: $event_id}})
+        MERGE (s)-[:INCLUDES]->(e)
+        RETURN s.session_id AS sid, e.entity_id AS eid
+        """
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result = await session.run(
+                    cypher, {"session_id": session_id, "event_id": event_id}
+                )
+                record = await result.single()
+                await result.consume()
+                if record:
+                    logger.info(f"Linked event {event_id} to session {session_id}")
+                    return True
+                logger.warning(
+                    f"Could not link event {event_id} to session {session_id} "
+                    "(one or both nodes missing)."
+                )
+                return False
+        except Exception as e:
+            logger.error(
+                f"Failed to link event {event_id} to session {session_id}: {e}",
+                exc_info=True,
+            )
+            return False
+
+    async def link_session_follows(
+        self, current_session_id: str, previous_session_id: str
+    ) -> bool:
+        """Create FOLLOWS edge between sessions for ordering chain.
+
+        Args:
+            current_session_id: The newer session.
+            previous_session_id: The older session it follows.
+
+        Returns:
+            True if edge was created, False otherwise.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot link sessions.")
+            return False
+
+        cypher = """
+        MATCH (curr:Session {session_id: $current_id})
+        MATCH (prev:Session {session_id: $previous_id})
+        MERGE (curr)-[:FOLLOWS]->(prev)
+        RETURN curr.session_id AS cid, prev.session_id AS pid
+        """
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result = await session.run(
+                    cypher,
+                    {"current_id": current_session_id, "previous_id": previous_session_id},
+                )
+                record = await result.single()
+                await result.consume()
+                if record:
+                    logger.info(
+                        f"Session chain: {current_session_id} -[:FOLLOWS]-> {previous_session_id}"
+                    )
+                    return True
+                logger.warning(
+                    f"Could not link sessions {current_session_id} -> {previous_session_id} "
+                    "(one or both missing)."
+                )
+                return False
+        except Exception as e:
+            logger.error(
+                f"Failed to link sessions {current_session_id} -> {previous_session_id}: {e}",
+                exc_info=True,
+            )
+            return False
+
+    async def get_session_events(
+        self, session_id: str, limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Get all events in a session via INCLUDES edges, ordered by event_seq.
+
+        Args:
+            session_id: The session to query.
+            limit: Max events to return.
+
+        Returns:
+            List of event dicts sorted by event_seq descending.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot get session events.")
+            return []
+
+        cypher = f"""
+        MATCH (s:Session {{session_id: $session_id}})-[:INCLUDES]->(e:{NEO4J_NODE_LABEL})
+        RETURN e.entity_id AS id, e.text AS text, e.event_seq AS event_seq,
+               e.event_time AS event_time, e.memory_type AS memory_type
+        ORDER BY e.event_seq DESC
+        LIMIT $limit
+        """
+        results = []
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result_cursor = await session.run(
+                    cypher, {"session_id": session_id, "limit": limit}
+                )
+                records = await result_cursor.data()
+                for record in records:
+                    results.append({
+                        "id": record.get("id"),
+                        "text": record.get("text"),
+                        "event_seq": record.get("event_seq"),
+                        "event_time": record.get("event_time"),
+                        "memory_type": record.get("memory_type"),
+                        "source": "graph",
+                    })
+            logger.info(
+                f"get_session_events({session_id}): returned {len(results)} events."
+            )
+            return results
+        except Exception as e:
+            logger.error(
+                f"Failed to get session events for {session_id}: {e}", exc_info=True
+            )
+            return []
+
+    async def get_latest_session(
+        self, project: Optional[str] = None
+    ) -> Optional[Dict[str, Any]]:
+        """Get the most recent Session node by last_event_seq.
+
+        Args:
+            project: Optional project filter.
+
+        Returns:
+            Dict with session properties, or None if no sessions exist.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot get latest session.")
+            return None
+
+        where = "WHERE s.project = $project" if project else ""
+        params: Dict[str, Any] = {}
+        if project:
+            params["project"] = project
+
+        cypher = f"""
+        MATCH (s:Session)
+        {where}
+        RETURN s.session_id AS session_id, s.started_at AS started_at,
+               s.ended_at AS ended_at, s.last_event_seq AS last_event_seq,
+               s.summary AS summary, s.project AS project,
+               s.thread_id AS thread_id
+        ORDER BY s.last_event_seq DESC
+        LIMIT 1
+        """
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result_cursor = await session.run(cypher, params)
+                record = await result_cursor.single()
+                await result_cursor.consume()
+                if record:
+                    result = dict(record)
+                    logger.info(f"Latest session: {result.get('session_id')}")
+                    return result
+                logger.info("No sessions found.")
+                return None
+        except Exception as e:
+            logger.error(f"Failed to get latest session: {e}", exc_info=True)
+            return None
 
     async def delete_graph_data(self, node_id: str) -> bool:
         """

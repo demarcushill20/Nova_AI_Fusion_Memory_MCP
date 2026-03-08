@@ -435,6 +435,31 @@ async def get_recent_events(
 
 
 @mcp.tool()
+async def get_session_events(
+    ctx: Context,
+    session_id: str,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """
+    Retrieves all events belonging to a specific session via graph traversal.
+    Returns events ordered by event_seq descending. Uses Neo4j INCLUDES edges.
+
+    Use this to inspect exactly what happened during a specific session.
+    """
+    logger.info(f"Tool 'get_session_events' called for session_id='{session_id}', limit={limit}")
+    try:
+        memory_service = _require_memory_service(ctx)
+        events = await memory_service.graph_client.get_session_events(
+            session_id=session_id, limit=limit
+        )
+        logger.info(f"get_session_events returning {len(events)} events.")
+        return {"events": events, "count": len(events), "session_id": session_id}
+    except Exception as e:
+        logger.error(f"Error during get_session_events: {e}", exc_info=True)
+        return {"error": f"Failed to get session events: {str(e)}"}
+
+
+@mcp.tool()
 async def check_health(ctx: Context) -> Dict[str, Any]:
     """
     Checks the health of the memory service and its dependencies (Pinecone, Neo4j).

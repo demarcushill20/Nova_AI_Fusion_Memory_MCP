@@ -412,6 +412,20 @@ class MemoryService:
             metadata=metadata,
             embedding=embedding,
         )
+
+        # Phase 5: Auto-link event to session if session_id is provided
+        if success and metadata.get("session_id"):
+            try:
+                await self.graph_client.link_event_to_session(
+                    event_id=item_id, session_id=metadata["session_id"]
+                )
+            except Exception as e:
+                # Non-fatal — event is already persisted, linking is best-effort
+                logger.warning(
+                    f"Failed to link event {item_id} to session "
+                    f"{metadata['session_id']}: {e}"
+                )
+
         return item_id if success else None
 
     async def perform_bulk_upsert(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -687,7 +701,37 @@ class MemoryService:
         content = f"Session checkpoint: {session_id.strip()}\n\n{session_summary.strip()}"
 
         logger.info(f"Creating checkpoint for session '{session_id}' (last_event_seq={last_seq})")
-        return await self.perform_upsert(content=content, metadata=metadata)
+        checkpoint_id = await self.perform_upsert(content=content, metadata=metadata)
+
+        # Phase 5: Create Session node in graph + FOLLOWS chain
+        if checkpoint_id:
+            try:
+                await self.graph_client.create_session_node(
+                    session_id=session_id.strip(),
+                    started_at=started_at,
+                    ended_at=ended_at,
+                    last_event_seq=last_seq,
+                    summary=session_summary.strip(),
+                    project=project,
+                    thread_id=thread_id,
+                )
+
+                # Link to previous session (FOLLOWS edge)
+                prev_session = await self.graph_client.get_latest_session(
+                    project=project
+                )
+                if prev_session and prev_session.get("session_id") != session_id.strip():
+                    await self.graph_client.link_session_follows(
+                        current_session_id=session_id.strip(),
+                        previous_session_id=prev_session["session_id"],
+                    )
+            except Exception as e:
+                # Non-fatal — checkpoint memory item is already persisted
+                logger.warning(
+                    f"Failed to create session graph structures for {session_id}: {e}"
+                )
+
+        return checkpoint_id
 
     async def get_last_checkpoint(
         self,
