@@ -392,7 +392,8 @@ class GraphClient:
             return False
 
         cypher = f"""
-        MATCH (s:Session {{session_id: $session_id}})
+        MERGE (s:Session {{session_id: $session_id}})
+        WITH s
         MATCH (e:{NEO4J_NODE_LABEL} {{entity_id: $event_id}})
         MERGE (s)-[:INCLUDES]->(e)
         RETURN s.session_id AS sid, e.entity_id AS eid

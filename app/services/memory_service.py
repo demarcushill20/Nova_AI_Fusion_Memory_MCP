@@ -603,6 +603,40 @@ class MemoryService:
 
                     if result:
                         successful_ids.append(entry["memory_id"])
+
+                        # Phase 5: Auto-link event to session (best-effort)
+                        sid = entry["metadata"].get("session_id")
+                        if sid:
+                            try:
+                                await self.graph_client.link_event_to_session(
+                                    event_id=entry["memory_id"],
+                                    session_id=sid,
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"bulk_upsert: failed to link {entry['memory_id']} "
+                                    f"to session {sid}: {e}"
+                                )
+
+                        # Phase 6: Record in Redis timeline (best-effort)
+                        if self.redis_timeline:
+                            try:
+                                scope = entry["metadata"].get("project", "global")
+                                await self.redis_timeline.record_event(
+                                    event_seq=entry["metadata"]["event_seq"],
+                                    memory_id=entry["memory_id"],
+                                    metadata_summary={
+                                        "memory_type": entry["metadata"].get("memory_type"),
+                                        "project": entry["metadata"].get("project"),
+                                        "session_id": entry["metadata"].get("session_id"),
+                                    },
+                                    scope=scope,
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"bulk_upsert: failed to record {entry['memory_id']} "
+                                    f"in Redis timeline: {e}"
+                                )
                     else:
                         errors.append(
                             {
@@ -794,20 +828,43 @@ class MemoryService:
     ) -> Optional[Dict[str, Any]]:
         """Retrieves the most recent session checkpoint.
 
-        Deterministic — does NOT use semantic search. Uses Pinecone metadata
-        filter for memory_type=="checkpoint", then sorts client-side by event_seq.
+        Deterministic — does NOT use semantic search.
+        Primary: Redis sorted-set O(1) lookup.
+        Fallback: Pinecone metadata filter + client-side sort.
 
         Args:
             project: Optional filter to only return checkpoints for this project.
             thread_id: Optional filter to only return checkpoints for this thread.
 
         Returns:
-            The checkpoint dict (id, text, metadata, score) or None if no checkpoints exist.
+            The checkpoint dict or None if no checkpoints exist.
         """
         if not self._initialized:
             logger.error("MemoryService not initialized. Cannot get checkpoint.")
             return None
 
+        # Phase 6: Redis fast path (O(1) via ZREVRANGE 0 0)
+        if self.redis_timeline and not thread_id:
+            try:
+                scope = project or "global"
+                result = await self.redis_timeline.get_last_checkpoint(scope=scope)
+                if result:
+                    entry, last_event_seq = result
+                    checkpoint = {
+                        "session_id": entry.get("session_id"),
+                        "summary": entry.get("summary"),
+                        "last_event_seq": int(last_event_seq),
+                        "source": "redis_timeline",
+                    }
+                    logger.info(
+                        f"Found latest checkpoint (Redis): session_id={checkpoint['session_id']}, "
+                        f"last_event_seq={checkpoint['last_event_seq']}"
+                    )
+                    return checkpoint
+            except Exception as e:
+                logger.warning(f"Redis checkpoint lookup failed, falling back to Pinecone: {e}")
+
+        # Pinecone fallback path
         filter_dict: Dict[str, Any] = {"memory_type": {"$eq": "checkpoint"}}
         if project:
             filter_dict["project"] = {"$eq": project}
@@ -815,8 +872,9 @@ class MemoryService:
             filter_dict["thread_id"] = {"$eq": thread_id}
 
         try:
-            # Use a zero vector — we only care about the metadata filter, not similarity
-            dummy_vector = [0.0] * 1536
+            from app.services.embedding_service import EMBEDDING_DIM
+
+            dummy_vector = [0.0] * EMBEDDING_DIM
             results = await asyncio.to_thread(
                 self.pinecone_client.query_vector,
                 dummy_vector,
@@ -834,8 +892,21 @@ class MemoryService:
                 reverse=True,
             )
             latest = results[0]
+
+            # Sanitize for JSON serialization — convert any non-serializable values
+            def _sanitize(obj: Any) -> Any:
+                if obj is None or isinstance(obj, (str, int, float, bool)):
+                    return obj
+                if isinstance(obj, dict):
+                    return {k: _sanitize(v) for k, v in obj.items()}
+                if isinstance(obj, (list, tuple)):
+                    return [_sanitize(v) for v in obj]
+                return str(obj)
+
+            latest = _sanitize(latest)
             logger.info(
-                f"Found latest checkpoint: session_id={latest.get('metadata', {}).get('session_id')}, "
+                f"Found latest checkpoint (Pinecone): session_id="
+                f"{latest.get('metadata', {}).get('session_id')}, "
                 f"event_seq={latest.get('metadata', {}).get('event_seq')}"
             )
             return latest
