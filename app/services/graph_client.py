@@ -96,11 +96,16 @@ class GraphClient:
             return
         # Using 'entity_id' as the property name for uniqueness, matching Nova_AI.py's graph ingestion logic
         constraint_query = f"CREATE CONSTRAINT IF NOT EXISTS FOR (n:{NEO4J_NODE_LABEL}) REQUIRE n.entity_id IS UNIQUE"
+        # Phase 1: Index on event_seq for temporal ordering queries
+        event_seq_index_query = f"CREATE INDEX IF NOT EXISTS FOR (n:{NEO4J_NODE_LABEL}) ON (n.event_seq)"
         try:
             async with self.driver.session(database=self._DATABASE) as session:
                 logger.info(f"Ensuring unique constraint on :{NEO4J_NODE_LABEL}(entity_id)...")
                 await session.run(constraint_query)
                 logger.info(f"Constraint on :{NEO4J_NODE_LABEL}(entity_id) ensured.")
+                logger.info(f"Ensuring index on :{NEO4J_NODE_LABEL}(event_seq)...")
+                await session.run(event_seq_index_query)
+                logger.info(f"Index on :{NEO4J_NODE_LABEL}(event_seq) ensured.")
         except Exception as e:
             logger.error(f"❌ Failed to ensure Neo4j constraint: {e}", exc_info=True)
             # Continue execution, but log the error

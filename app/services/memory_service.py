@@ -1,6 +1,7 @@
 import logging
 import asyncio
 import hashlib
+from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
 
 # Import dependent services and modules
@@ -13,6 +14,7 @@ try:
     from .query_router import QueryRouter, RoutingMode
     from .hybrid_merger import HybridMerger
     from .reranker import CrossEncoderReranker
+    from .sequence_service import SequenceService
 except ImportError as e:
     print(f"Error importing modules in memory_service.py: {e}. Ensure all service files and Nova modules exist.")
     # Depending on severity, might raise error or proceed with caution
@@ -35,6 +37,7 @@ class MemoryService:
         self.query_router = QueryRouter()
         self.hybrid_merger = HybridMerger() # Uses default RRF k=60
         self.reranker: Optional[CrossEncoderReranker] = None # Initialize as None, load in async init
+        self.sequence_service = SequenceService(seq_file=settings.EVENT_SEQ_FILE)
 
         # Flag to track initialization status
         self._initialized = False
@@ -221,6 +224,23 @@ class MemoryService:
         """Returns the caller-provided ID or deterministic MD5(content)."""
         return memory_id or hashlib.md5(content.encode()).hexdigest()
 
+    async def _inject_chronology(self, metadata: Dict[str, Any]) -> Dict[str, Any]:
+        """Inject system-enforced chronology fields into metadata.
+
+        Always sets event_seq (monotonic, system-assigned — never caller-provided).
+        Sets event_time to current UTC if not already provided by the caller.
+        Sets memory_type to 'scratch' if not already provided.
+
+        This is the "can't forget" solution — agents don't need to remember
+        to add timestamps because the system always does it.
+        """
+        metadata["event_seq"] = await self.sequence_service.next_seq()
+        if "event_time" not in metadata or not metadata["event_time"]:
+            metadata["event_time"] = datetime.now(timezone.utc).isoformat()
+        if "memory_type" not in metadata or not metadata["memory_type"]:
+            metadata["memory_type"] = "scratch"
+        return metadata
+
     async def _persist_memory_item(
         self,
         item_id: str,
@@ -317,6 +337,10 @@ class MemoryService:
 
         item_id = self._resolve_memory_id(content, memory_id)
         logger.info(f"Performing upsert for ID: {item_id}, Content: '{content[:100]}...'")
+
+        # System-enforced chronology (Phase 1) — cannot be forgotten
+        metadata = metadata if metadata is not None else {}
+        metadata = await self._inject_chronology(metadata)
 
         try:
             embedding = await asyncio.to_thread(
@@ -421,6 +445,17 @@ class MemoryService:
             )
 
         successful_ids: List[str] = []
+
+        # System-enforced chronology (Phase 1) — batch sequence allocation
+        if normalized_items:
+            now_iso = datetime.now(timezone.utc).isoformat()
+            seq_batch = await self.sequence_service.next_batch(len(normalized_items))
+            for i, entry in enumerate(normalized_items):
+                entry["metadata"]["event_seq"] = seq_batch[i]
+                if "event_time" not in entry["metadata"] or not entry["metadata"]["event_time"]:
+                    entry["metadata"]["event_time"] = now_iso
+                if "memory_type" not in entry["metadata"] or not entry["metadata"]["memory_type"]:
+                    entry["metadata"]["memory_type"] = "scratch"
 
         if normalized_items:
             contents = [entry["content"] for entry in normalized_items]

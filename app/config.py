@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     # Embedding Model Configuration (Optional - for future flexibility)
     EMBEDDING_MODEL: str = "text-embedding-ada-002"
 
+    # Chronology Configuration (Phase 1)
+    EVENT_SEQ_FILE: str = "/data/event_seq.counter"  # Monotonic sequence counter file
+
     @model_validator(mode="before")
     @classmethod
     def _normalize_mixed_case_env_keys(cls, data):
