@@ -24,6 +24,20 @@ services:
         aliases:
           - neo4j_db
 
+  redis:
+    image: redis:7-alpine
+    container_name: nova_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    networks:
+      nova_network:
+        aliases:
+          - redis_db
+
   # Combined MCP Server (using mcp-python-sdk)
   # This service now directly handles MCP communication via stdio
   nova-memory:
@@ -37,8 +51,10 @@ services:
       - .env # Load environment variables for mcp_server.py (API keys etc.)
     # No RUNTIME_MODE needed
     # No ports needed for stdio MCP
-    depends_on: # Still depends on Neo4j being ready
+    depends_on: # Depends on Neo4j and Redis being ready
       neo4j:
+        condition: service_started
+      redis:
         condition: service_started
     restart: unless-stopped
     # Keep the profile so it's not started by default `docker-compose up`
@@ -56,3 +72,4 @@ networks:
 
 volumes:
   neo4j_data: # Define the named volume for Neo4j data persistence
+  redis_data: # Define the named volume for Redis AOF persistence

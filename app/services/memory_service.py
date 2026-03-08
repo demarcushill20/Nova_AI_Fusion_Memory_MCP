@@ -15,6 +15,7 @@ try:
     from .hybrid_merger import HybridMerger
     from .reranker import CrossEncoderReranker
     from .sequence_service import SequenceService
+    from .redis_timeline import RedisTimeline
 except ImportError as e:
     print(f"Error importing modules in memory_service.py: {e}. Ensure all service files and Nova modules exist.")
     # Depending on severity, might raise error or proceed with caution
@@ -37,7 +38,12 @@ class MemoryService:
         self.query_router = QueryRouter()
         self.hybrid_merger = HybridMerger() # Uses default RRF k=60
         self.reranker: Optional[CrossEncoderReranker] = None # Initialize as None, load in async init
-        self.sequence_service = SequenceService(seq_file=settings.EVENT_SEQ_FILE)
+        self.sequence_service = SequenceService(
+            seq_file=settings.EVENT_SEQ_FILE,
+            redis_url=settings.REDIS_URL if settings.REDIS_ENABLED else None,
+            redis_enabled=settings.REDIS_ENABLED,
+        )
+        self.redis_timeline: Optional[RedisTimeline] = None
 
         # Flag to track initialization status
         self._initialized = False
@@ -80,17 +86,33 @@ class MemoryService:
         else:
              self._reranker_loaded = True
 
+        # Phase 6: Initialize Redis (non-critical — falls back to file)
+        redis_ok = await self.sequence_service.initialize_redis()
+        if redis_ok and self.sequence_service._redis:
+            self.redis_timeline = RedisTimeline(self.sequence_service._redis)
+            logger.info("Redis timeline initialized.")
+        else:
+            self.redis_timeline = None
+            logger.info("Redis timeline not available. Using Pinecone for temporal queries.")
+
         # Service is only initialized if critical components (Pinecone, Graph) succeed.
         if pinecone_ok and graph_ok:
             self._initialized = True
-            logger.info(f"MemoryService initialization complete. Status - Pinecone: OK, Graph: OK, Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}")
+            logger.info(
+                f"MemoryService initialization complete. Status - Pinecone: OK, Graph: OK, "
+                f"Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}, "
+                f"Redis: {'OK' if redis_ok else 'Disabled/Fallback'}"
+            )
         else:
-            self._initialized = False # Explicitly set to False
-            logger.error(f"MemoryService initialization FAILED. Status - Pinecone: {'OK' if pinecone_ok else 'Failed'}, Graph: {'OK' if graph_ok else 'Failed'}, Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}")
-            # Optionally, raise an exception here to halt FastAPI startup if critical components fail
-            # raise RuntimeError("Failed to initialize critical MemoryService components (Pinecone or Graph).")
-        
-        return self._initialized # Explicitly return the final status
+            self._initialized = False
+            logger.error(
+                f"MemoryService initialization FAILED. Status - Pinecone: {'OK' if pinecone_ok else 'Failed'}, "
+                f"Graph: {'OK' if graph_ok else 'Failed'}, "
+                f"Reranker: {'Loaded' if self._reranker_loaded else 'Failed/Disabled'}, "
+                f"Redis: {'OK' if redis_ok else 'Disabled/Fallback'}"
+            )
+
+        return self._initialized
 
     async def _load_reranker_model(self) -> bool:
         """Loads the reranker model asynchronously."""
@@ -426,6 +448,23 @@ class MemoryService:
                     f"{metadata['session_id']}: {e}"
                 )
 
+        # Phase 6: Record in Redis timeline (best-effort)
+        if success and self.redis_timeline:
+            try:
+                scope = metadata.get("project", "global")
+                await self.redis_timeline.record_event(
+                    event_seq=metadata["event_seq"],
+                    memory_id=item_id,
+                    metadata_summary={
+                        "memory_type": metadata.get("memory_type"),
+                        "project": metadata.get("project"),
+                        "session_id": metadata.get("session_id"),
+                    },
+                    scope=scope,
+                )
+            except Exception as e:
+                logger.warning(f"Failed to record event in Redis timeline: {e}")
+
         return item_id if success else None
 
     async def perform_bulk_upsert(self, items: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -731,6 +770,21 @@ class MemoryService:
                     f"Failed to create session graph structures for {session_id}: {e}"
                 )
 
+            # Phase 6: Record checkpoint in Redis timeline
+            if self.redis_timeline:
+                try:
+                    scope = project or "global"
+                    await self.redis_timeline.record_checkpoint(
+                        session_id=session_id.strip(),
+                        last_event_seq=last_seq,
+                        summary=session_summary.strip(),
+                        scope=scope,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        f"Failed to record checkpoint in Redis timeline: {e}"
+                    )
+
         return checkpoint_id
 
     async def get_last_checkpoint(
@@ -827,7 +881,52 @@ class MemoryService:
 
         n = max(1, min(n, 200))  # Clamp to [1, 200]
 
-        # Build Pinecone metadata filter
+        # Phase 6: Use Redis timeline when available (O(log N) vs Pinecone dummy-vector)
+        if self.redis_timeline and not thread_id and not since_time:
+            # Redis path — fast sorted set queries
+            # (thread_id and since_time filtering not yet in Redis, fall through to Pinecone)
+            try:
+                scope = project or "global"
+                if since_seq is not None:
+                    raw_timeline = await self.redis_timeline.get_since_seq(
+                        since_seq=since_seq, scope=scope
+                    )
+                    # Reverse for descending order, then slice
+                    raw_timeline.reverse()
+                else:
+                    raw_timeline = await self.redis_timeline.get_recent(
+                        n=n * self.OVER_FETCH_FACTOR, scope=scope
+                    )
+
+                if raw_timeline:
+                    # Filter by memory_type client-side if specified
+                    results = []
+                    for entry, seq in raw_timeline:
+                        if memory_type and entry.get("memory_type") != memory_type:
+                            continue
+                        results.append({
+                            "id": entry.get("id"),
+                            "score": 0.0,
+                            "metadata": {
+                                "event_seq": seq,
+                                "memory_type": entry.get("memory_type"),
+                                "project": entry.get("project"),
+                                "session_id": entry.get("session_id"),
+                            },
+                            "source": "redis_timeline",
+                        })
+                        if len(results) >= n:
+                            break
+                    if results:
+                        logger.info(
+                            f"get_recent_events (Redis): returning {len(results)} events."
+                        )
+                        return results
+                    # If Redis returned nothing after filtering, fall through to Pinecone
+            except Exception as e:
+                logger.warning(f"Redis timeline query failed, falling back to Pinecone: {e}")
+
+        # Pinecone fallback path
         filter_dict: Dict[str, Any] = {}
         if project:
             filter_dict["project"] = {"$eq": project}
@@ -908,9 +1007,10 @@ class MemoryService:
 
             # Reranker status (based on loading)
             statuses["reranker"] = "loaded" if self._reranker_loaded else "disabled/failed"
-            if not self._reranker_loaded:
-                 # Don't mark overall status as error just for reranker, but indicate issue
-                 pass
+
+            # Redis status (Phase 6)
+            statuses["redis"] = "connected" if self.sequence_service._using_redis else "disabled/fallback"
+            statuses["redis_timeline"] = "active" if self.redis_timeline else "inactive"
 
         except Exception as e:
             logger.error(f"Unexpected error during health check: {e}", exc_info=True)

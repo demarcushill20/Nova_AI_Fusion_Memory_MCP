@@ -39,6 +39,10 @@ class Settings(BaseSettings):
     # Chronology Configuration (Phase 1)
     EVENT_SEQ_FILE: str = "/data/event_seq.counter"  # Monotonic sequence counter file
 
+    # Redis Configuration (Phase 6 — optional, enables O(log N) timeline queries)
+    REDIS_URL: Optional[str] = "redis://redis_db:6379/0"  # Docker Compose alias
+    REDIS_ENABLED: bool = True  # Set False to use file-based fallback
+
     @model_validator(mode="before")
     @classmethod
     def _normalize_mixed_case_env_keys(cls, data):
@@ -59,6 +63,8 @@ class Settings(BaseSettings):
             ("PINECONE_INDEX", "pinecone_index"),
             ("RERANKER_MODEL_NAME", "reranker_model_name"),
             ("EMBEDDING_MODEL", "embedding_model"),
+            ("REDIS_URL", "redis_url"),
+            ("REDIS_ENABLED", "redis_enabled"),
         )
 
         for canonical, lowercase in key_aliases:
