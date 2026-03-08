@@ -6,20 +6,20 @@ from contextlib import asynccontextmanager
 from dataclasses import dataclass  # Import dataclass
 from typing import Any, Dict, List, Optional
 
-from mcp.server.fastmcp import FastMCP, Context
-
-# ToolParam is not needed; FastMCP uses type hints directly
-
-# Assuming your MemoryService and config are structured appropriately
-# Adjust imports based on your actual project structure
-from app.services.memory_service import MemoryService
-
-# Configure logging
+# Configure logging BEFORE any app imports to prevent stdout pollution
+# Libraries like sentence_transformers/tqdm can interfere with MCP stdio transport
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.WARNING,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[logging.StreamHandler(sys.stderr)],
 )
+# App-level loggers at INFO, noisy libraries stay at WARNING
+for _name in ("nova-memory-mcp-server", "app.services"):
+    logging.getLogger(_name).setLevel(logging.INFO)
+
+from mcp.server.fastmcp import FastMCP, Context
+from app.services.memory_service import MemoryService
+
 logger = logging.getLogger("nova-memory-mcp-server")
 
 # Global instance (or manage via lifespan context)

@@ -56,9 +56,8 @@ class GraphClient:
             else:
                 logger.info("Attempting driver connection without authentication (NEO4J_PASSWORD not set).")
 
-            # Add a delay to allow Neo4j container to fully initialize
-            logger.info("Waiting 5 seconds for Neo4j service to potentially start...")
-            await asyncio.sleep(5)
+            # Brief delay to allow Neo4j container to finish startup if just launched
+            await asyncio.sleep(1)
             logger.info("Attempting Neo4j driver creation...")
             # Use AsyncGraphDatabase for the async driver
             self.driver = AsyncGraphDatabase.driver(uri, **auth_kwargs)
