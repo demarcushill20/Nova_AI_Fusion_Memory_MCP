@@ -581,6 +581,123 @@ class MemoryService:
             logger.error(f"Unexpected error during parallel delete for ID {memory_id}: {e}", exc_info=True)
             return False
 
+    # --- Phase 2: Session Checkpoints ---
+
+    CHECKPOINT_REQUIRED_FIELDS = {"session_id", "session_summary"}
+
+    async def create_checkpoint(
+        self,
+        session_id: str,
+        session_summary: str,
+        started_at: Optional[str] = None,
+        ended_at: Optional[str] = None,
+        open_threads: Optional[List[str]] = None,
+        next_actions: Optional[List[str]] = None,
+        project: Optional[str] = None,
+        thread_id: Optional[str] = None,
+    ) -> Optional[str]:
+        """Creates a session checkpoint — a structured summary of a completed session.
+
+        Snapshots `last_event_seq` (the highest event_seq at checkpoint time)
+        so downstream consumers know exactly which events preceded this checkpoint.
+
+        System auto-injects event_time and event_seq via _inject_chronology.
+
+        Returns:
+            The ID of the checkpoint memory item, or None on failure.
+        """
+        if not session_id or not session_id.strip():
+            logger.error("create_checkpoint: session_id is required.")
+            return None
+        if not session_summary or not session_summary.strip():
+            logger.error("create_checkpoint: session_summary is required.")
+            return None
+
+        last_seq = self.sequence_service.current_seq()
+
+        metadata: Dict[str, Any] = {
+            "memory_type": "checkpoint",
+            "session_id": session_id.strip(),
+            "session_summary": session_summary.strip(),
+            "last_event_seq": last_seq,
+        }
+
+        # Add optional fields only if provided
+        if started_at:
+            metadata["started_at"] = started_at
+        if ended_at:
+            metadata["ended_at"] = ended_at
+        if open_threads:
+            metadata["open_threads"] = open_threads
+        if next_actions:
+            metadata["next_actions"] = next_actions
+        if project:
+            metadata["project"] = project
+        if thread_id:
+            metadata["thread_id"] = thread_id
+
+        content = f"Session checkpoint: {session_id.strip()}\n\n{session_summary.strip()}"
+
+        logger.info(f"Creating checkpoint for session '{session_id}' (last_event_seq={last_seq})")
+        return await self.perform_upsert(content=content, metadata=metadata)
+
+    async def get_last_checkpoint(
+        self,
+        project: Optional[str] = None,
+        thread_id: Optional[str] = None,
+    ) -> Optional[Dict[str, Any]]:
+        """Retrieves the most recent session checkpoint.
+
+        Deterministic — does NOT use semantic search. Uses Pinecone metadata
+        filter for memory_type=="checkpoint", then sorts client-side by event_seq.
+
+        Args:
+            project: Optional filter to only return checkpoints for this project.
+            thread_id: Optional filter to only return checkpoints for this thread.
+
+        Returns:
+            The checkpoint dict (id, text, metadata, score) or None if no checkpoints exist.
+        """
+        if not self._initialized:
+            logger.error("MemoryService not initialized. Cannot get checkpoint.")
+            return None
+
+        filter_dict: Dict[str, Any] = {"memory_type": {"$eq": "checkpoint"}}
+        if project:
+            filter_dict["project"] = {"$eq": project}
+        if thread_id:
+            filter_dict["thread_id"] = {"$eq": thread_id}
+
+        try:
+            # Use a zero vector — we only care about the metadata filter, not similarity
+            dummy_vector = [0.0] * 1536
+            results = await asyncio.to_thread(
+                self.pinecone_client.query_vector,
+                dummy_vector,
+                top_k=20,
+                filter=filter_dict,
+            )
+
+            if not results:
+                logger.info("No checkpoints found matching the filter.")
+                return None
+
+            # Sort by event_seq descending, return the latest
+            results.sort(
+                key=lambda r: r.get("metadata", {}).get("event_seq", 0),
+                reverse=True,
+            )
+            latest = results[0]
+            logger.info(
+                f"Found latest checkpoint: session_id={latest.get('metadata', {}).get('session_id')}, "
+                f"event_seq={latest.get('metadata', {}).get('event_seq')}"
+            )
+            return latest
+
+        except Exception as e:
+            logger.error(f"Failed to get last checkpoint: {e}", exc_info=True)
+            return None
+
     async def check_health(self) -> Dict[str, str]:
         """
         Checks the health of the service and its dependencies.

@@ -315,6 +315,80 @@ async def delete_memory(ctx: Context, memory_id: str) -> Dict[str, Any]:
 
 
 @mcp.tool()
+async def create_checkpoint(
+    ctx: Context,
+    session_id: str,
+    session_summary: str,
+    started_at: Optional[str] = None,
+    ended_at: Optional[str] = None,
+    open_threads: Optional[List[str]] = None,
+    next_actions: Optional[List[str]] = None,
+    project: Optional[str] = None,
+    thread_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Creates a session checkpoint — a structured summary of a completed session.
+    System auto-injects event_time, event_seq, and snapshots last_event_seq.
+
+    Use this at the end of a work session to record what was accomplished,
+    what threads are still open, and what should happen next.
+    """
+    logger.info(f"Tool 'create_checkpoint' called for session_id='{session_id}'")
+    try:
+        memory_service = _require_memory_service(ctx)
+        checkpoint_id = await memory_service.create_checkpoint(
+            session_id=session_id,
+            session_summary=session_summary,
+            started_at=started_at,
+            ended_at=ended_at,
+            open_threads=open_threads,
+            next_actions=next_actions,
+            project=project,
+            thread_id=thread_id,
+        )
+        if checkpoint_id:
+            logger.info(f"Checkpoint created successfully: {checkpoint_id}")
+            return {"id": checkpoint_id, "status": "success", "session_id": session_id}
+        logger.warning("Checkpoint creation failed: no ID returned.")
+        return {"error": "Failed to create checkpoint."}
+    except Exception as e:
+        logger.error(f"Error during create_checkpoint: {e}", exc_info=True)
+        return {"error": f"Failed to create checkpoint: {str(e)}"}
+
+
+@mcp.tool()
+async def get_last_checkpoint(
+    ctx: Context,
+    project: Optional[str] = None,
+    thread_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieves the most recent session checkpoint.
+    Deterministic — does NOT use semantic search.
+    Returns the checkpoint with the highest event_seq where memory_type == "checkpoint".
+
+    Use this to answer "what did we do last session?" or to resume work from where you left off.
+    """
+    logger.info(
+        f"Tool 'get_last_checkpoint' called with project={project}, thread_id={thread_id}"
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+        checkpoint = await memory_service.get_last_checkpoint(
+            project=project,
+            thread_id=thread_id,
+        )
+        if checkpoint:
+            logger.info(f"Last checkpoint found: {checkpoint.get('id', 'unknown')}")
+            return {"checkpoint": checkpoint, "status": "found"}
+        logger.info("No matching checkpoint found.")
+        return {"checkpoint": None, "status": "not_found"}
+    except Exception as e:
+        logger.error(f"Error during get_last_checkpoint: {e}", exc_info=True)
+        return {"error": f"Failed to get last checkpoint: {str(e)}"}
+
+
+@mcp.tool()
 async def check_health(ctx: Context) -> Dict[str, Any]:
     """
     Checks the health of the memory service and its dependencies (Pinecone, Neo4j).
