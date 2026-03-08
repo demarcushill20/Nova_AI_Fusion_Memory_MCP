@@ -389,6 +389,52 @@ async def get_last_checkpoint(
 
 
 @mcp.tool()
+async def get_recent_events(
+    ctx: Context,
+    n: int = 20,
+    project: Optional[str] = None,
+    thread_id: Optional[str] = None,
+    memory_type: Optional[str] = None,
+    since_seq: Optional[int] = None,
+    since_time: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Retrieves the N most recent memory events, ordered by event_seq (descending).
+    Does NOT use semantic similarity — purely metadata-driven.
+
+    Use this when you need chronologically ordered results, such as:
+    - "Show me the last 10 things we worked on"
+    - "What happened after event_seq 42?"
+    - "List recent decisions for project NovaTrade"
+
+    Optional filters narrow the result set before sorting.
+    """
+    logger.info(
+        f"Tool 'get_recent_events' called with n={n}, project={project}, "
+        f"thread_id={thread_id}, memory_type={memory_type}, "
+        f"since_seq={since_seq}, since_time={since_time}"
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+        if n < 1:
+            return {"error": "n must be >= 1"}
+
+        events = await memory_service.get_recent_events(
+            n=n,
+            project=project,
+            thread_id=thread_id,
+            memory_type=memory_type,
+            since_seq=since_seq,
+            since_time=since_time,
+        )
+        logger.info(f"get_recent_events returning {len(events)} events.")
+        return {"events": events, "count": len(events)}
+    except Exception as e:
+        logger.error(f"Error during get_recent_events: {e}", exc_info=True)
+        return {"error": f"Failed to get recent events: {str(e)}"}
+
+
+@mcp.tool()
 async def check_health(ctx: Context) -> Dict[str, Any]:
     """
     Checks the health of the memory service and its dependencies (Pinecone, Neo4j).

@@ -698,6 +698,88 @@ class MemoryService:
             logger.error(f"Failed to get last checkpoint: {e}", exc_info=True)
             return None
 
+    # --- Phase 3: Temporal Retrieval ---
+
+    OVER_FETCH_FACTOR = 5
+    MAX_OVER_FETCH = 10000
+
+    async def get_recent_events(
+        self,
+        n: int = 20,
+        project: Optional[str] = None,
+        thread_id: Optional[str] = None,
+        memory_type: Optional[str] = None,
+        since_seq: Optional[int] = None,
+        since_time: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        """Retrieves the N most recent memory events ordered by event_seq descending.
+
+        Purely metadata-driven — does NOT use semantic similarity.
+        Over-fetches from Pinecone with a dummy vector, filters by metadata,
+        then sorts client-side by event_seq.
+
+        Args:
+            n: Number of events to return (default 20, max 200).
+            project: Filter by project name.
+            thread_id: Filter by thread_id.
+            memory_type: Filter by memory_type (e.g. "scratch", "decision", "checkpoint").
+            since_seq: Only return events with event_seq >= this value.
+            since_time: Only return events with event_time >= this ISO 8601 string.
+
+        Returns:
+            List of memory items sorted by event_seq descending.
+        """
+        if not self._initialized:
+            logger.error("MemoryService not initialized. Cannot get recent events.")
+            return []
+
+        n = max(1, min(n, 200))  # Clamp to [1, 200]
+
+        # Build Pinecone metadata filter
+        filter_dict: Dict[str, Any] = {}
+        if project:
+            filter_dict["project"] = {"$eq": project}
+        if thread_id:
+            filter_dict["thread_id"] = {"$eq": thread_id}
+        if memory_type:
+            filter_dict["memory_type"] = {"$eq": memory_type}
+        if since_seq is not None:
+            filter_dict["event_seq"] = {"$gte": since_seq}
+        if since_time:
+            filter_dict["event_time"] = {"$gte": since_time}
+
+        fetch_count = min(n * self.OVER_FETCH_FACTOR, self.MAX_OVER_FETCH)
+
+        try:
+            dummy_vector = [0.0] * 1536
+            raw_results = await asyncio.to_thread(
+                self.pinecone_client.query_vector,
+                dummy_vector,
+                top_k=fetch_count,
+                filter=filter_dict if filter_dict else None,
+            )
+
+            if not raw_results:
+                logger.info("get_recent_events: no results from Pinecone.")
+                return []
+
+            # Sort by event_seq descending (client-side)
+            raw_results.sort(
+                key=lambda r: r.get("metadata", {}).get("event_seq", 0),
+                reverse=True,
+            )
+
+            results = raw_results[:n]
+            logger.info(
+                f"get_recent_events: returning {len(results)} of {len(raw_results)} "
+                f"fetched (requested n={n})"
+            )
+            return results
+
+        except Exception as e:
+            logger.error(f"Failed to get recent events: {e}", exc_info=True)
+            return []
+
     async def check_health(self) -> Dict[str, str]:
         """
         Checks the health of the service and its dependencies.

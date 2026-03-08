@@ -245,6 +245,88 @@ class GraphClient:
             logger.error(f"❌ Failed to query graph: {e}", exc_info=True)
             return []
 
+    async def query_recent_events(
+        self, n: int = 20, filters: Optional[Dict[str, Any]] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve N most recent nodes ordered by event_seq DESC.
+
+        Uses Neo4j's native ORDER BY for proper server-side sorting.
+
+        Args:
+            n: Number of events to return.
+            filters: Optional dict with keys: project, thread_id, memory_type, since_seq.
+
+        Returns:
+            List of memory item dicts sorted by event_seq descending.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot query recent events.")
+            return []
+
+        where_clauses = []
+        params: Dict[str, Any] = {"limit": n}
+
+        if filters:
+            if filters.get("project"):
+                where_clauses.append("n.project = $project")
+                params["project"] = filters["project"]
+            if filters.get("thread_id"):
+                where_clauses.append("n.thread_id = $thread_id")
+                params["thread_id"] = filters["thread_id"]
+            if filters.get("memory_type"):
+                where_clauses.append("n.memory_type = $memory_type")
+                params["memory_type"] = filters["memory_type"]
+            if filters.get("since_seq") is not None:
+                where_clauses.append("n.event_seq >= $since_seq")
+                params["since_seq"] = filters["since_seq"]
+
+        where_str = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+
+        cypher = f"""
+        MATCH (n:{NEO4J_NODE_LABEL})
+        {where_str}
+        WHERE n.event_seq IS NOT NULL
+        RETURN n.entity_id AS id, n.text AS text, n.event_seq AS event_seq,
+               n.event_time AS event_time, n.memory_type AS memory_type, n AS node_properties
+        ORDER BY n.event_seq DESC
+        LIMIT $limit
+        """
+
+        # Fix double WHERE if we already have where_clauses
+        if where_clauses:
+            cypher = f"""
+        MATCH (n:{NEO4J_NODE_LABEL})
+        WHERE {' AND '.join(where_clauses)} AND n.event_seq IS NOT NULL
+        RETURN n.entity_id AS id, n.text AS text, n.event_seq AS event_seq,
+               n.event_time AS event_time, n.memory_type AS memory_type, n AS node_properties
+        ORDER BY n.event_seq DESC
+        LIMIT $limit
+        """
+
+        results = []
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result_cursor = await session.run(cypher, params)
+                records = await result_cursor.data()
+
+                for record in records:
+                    node_props = dict(record.get("node_properties", {}))
+                    results.append({
+                        "id": record.get("id"),
+                        "text": record.get("text"),
+                        "source": "graph",
+                        "score": 0.0,
+                        "metadata": {
+                            k: v for k, v in node_props.items()
+                            if k not in ["entity_id", "text"]
+                        },
+                    })
+            logger.info(f"Neo4j query_recent_events returned {len(results)} nodes (limit {n}).")
+            return results
+        except Exception as e:
+            logger.error(f"Failed to query recent events from graph: {e}", exc_info=True)
+            return []
+
     async def delete_graph_data(self, node_id: str) -> bool:
         """
         Deletes a node from the Neo4j graph by its unique ID ('entity_id').
