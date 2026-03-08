@@ -16,6 +16,9 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+# Embedding dimension — must match EMBEDDING_MODEL and Pinecone index
+EMBEDDING_DIM = 1536
+
 # --- OpenAI Client Initialization ---
 # Ensure the API key is set before making calls
 if not settings.OPENAI_API_KEY:
@@ -50,7 +53,7 @@ def get_embedding(text: str, model: str = settings.EMBEDDING_MODEL) -> List[floa
     """
     if not text or not isinstance(text, str):
         logger.warning("get_embedding called with invalid text input. Returning zero vector.")
-        return [0.0] * 1536 # Dimension for ada-002
+        return [0.0] * EMBEDDING_DIM # Dimension for ada-002
 
     cache_key = (text, model) # Cache key includes model
 
@@ -76,7 +79,7 @@ def get_embedding(text: str, model: str = settings.EMBEDDING_MODEL) -> List[floa
         return embedding
     except Exception as e:
         logger.error(f"❌ Error getting embedding for text '{text[:50]}...': {e}", exc_info=True)
-        return [0.0] * 1536 # Return zero vector on error
+        return [0.0] * EMBEDDING_DIM # Return zero vector on error
 
 async def batch_get_embeddings(texts: List[str], model: str = settings.EMBEDDING_MODEL) -> List[List[float]]:
     """
@@ -102,7 +105,7 @@ async def batch_get_embeddings(texts: List[str], model: str = settings.EMBEDDING
         for i, text in enumerate(texts):
             if not text or not isinstance(text, str):
                 logger.warning(f"Invalid text input at index {i} in batch. Will return zero vector.")
-                results[i] = [0.0] * 1536 # Dimension for ada-002
+                results[i] = [0.0] * EMBEDDING_DIM # Dimension for ada-002
                 continue
 
             cache_key = (text, model)
@@ -142,10 +145,10 @@ async def batch_get_embeddings(texts: List[str], model: str = settings.EMBEDDING
             # Fill failed fetches with zero vectors
             for i in indices_to_fetch:
                 if results[i] is None: # Only fill if not already filled by cache
-                    results[i] = [0.0] * 1536
+                    results[i] = [0.0] * EMBEDDING_DIM
 
     # Final check for any None results (e.g., if initial input was invalid) and replace with zero vectors
-    final_results = [[0.0] * 1536 if res is None else res for res in results]
+    final_results = [[0.0] * EMBEDDING_DIM if res is None else res for res in results]
 
     return final_results
 

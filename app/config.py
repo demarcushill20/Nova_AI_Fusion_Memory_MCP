@@ -34,7 +34,7 @@ class Settings(BaseSettings):
     RERANKER_MODEL_NAME: Optional[str] = "cross-encoder/ms-marco-MiniLM-L-6-v2"
 
     # Embedding Model Configuration (Optional - for future flexibility)
-    EMBEDDING_MODEL: str = "text-embedding-ada-002"
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # Chronology Configuration (Phase 1)
     EVENT_SEQ_FILE: str = "/data/event_seq.counter"  # Monotonic sequence counter file

@@ -1,6 +1,5 @@
 import logging
-import pinecone
-from pinecone import Index, PineconeException # Use specific exception
+from pinecone import Pinecone, PineconeException, ServerlessSpec
 from typing import List, Dict, Any, Optional
 
 # Import settings from the config module
@@ -21,8 +20,8 @@ class PineconeClient:
     def __init__(self):
         """Initializes the PineconeClient, deferring connection."""
         self.index_name: str = settings.PINECONE_INDEX
-        self.index: Optional[Index] = None
-        self.dimension: int = 1536 # Dimension for text-embedding-ada-002
+        self.index = None
+        self.dimension: int = 1536 # Dimension for text-embedding-3-small
         self.metric: str = "cosine" # Similarity metric
         logger.info(f"PineconeClient initialized for index '{self.index_name}'. Connection deferred.")
 
@@ -38,21 +37,19 @@ class PineconeClient:
             return True
 
         try:
-            logger.info(f"Initializing Pinecone connection (API Key: {'*' * (len(settings.PINECONE_API_KEY) - 4) + settings.PINECONE_API_KEY[-4:]}, Env: {settings.PINECONE_ENV})...")
-            # Use the new Pinecone client initialization
-            pc = pinecone.Pinecone(api_key=settings.PINECONE_API_KEY, environment=settings.PINECONE_ENV)
+            logger.info(f"Initializing Pinecone connection (Env: {settings.PINECONE_ENV})...")
+            pc = Pinecone(api_key=settings.PINECONE_API_KEY)
 
             # Check if index exists
-            # Get index names from the IndexList object
             index_list = pc.list_indexes()
-            existing_index_names = [index.name for index in index_list.indexes] if index_list and index_list.indexes else []
+            existing_index_names = [idx.name for idx in index_list]
             if self.index_name not in existing_index_names:
                 logger.warning(f"Pinecone index '{self.index_name}' not found. Attempting to create...")
                 pc.create_index(
                     name=self.index_name,
                     dimension=self.dimension,
-                    metric=self.metric
-                    # Add other configurations like pod_type if needed, e.g., pod_type="p1.x1"
+                    metric=self.metric,
+                    spec=ServerlessSpec(cloud="aws", region="us-east-1"),
                 )
                 logger.info(f"Successfully created Pinecone index '{self.index_name}'.")
             else:
