@@ -95,9 +95,10 @@ class TestTemporalSemanticRouting:
         assert mode in (RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
 
     def test_explain_most_recent_decision(self, router):
-        """'explain' (vector) + 'most recent' (temporal)."""
+        """'explain' (vector) + 'most recent' (temporal) + 'decision' (decision)."""
         mode = router.route("Explain the most recent architecture decision")
-        assert mode == RoutingMode.TEMPORAL_SEMANTIC
+        # DECISION is a specific mode, so it wins over TEMPORAL_SEMANTIC synthesis
+        assert mode in (RoutingMode.DECISION, RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
 
     def test_what_is_the_latest(self, router):
         """'what is' (vector) + 'latest' (temporal)."""

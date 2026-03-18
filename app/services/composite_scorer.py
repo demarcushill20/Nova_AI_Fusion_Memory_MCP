@@ -42,13 +42,21 @@ def composite_score(
     Returns:
         A float representing the composite relevance score.
     """
-    w = weights or DEFAULT_WEIGHTS
+    if weights is not None:
+        # Custom weights: missing keys default to 0.0 so the caller controls
+        # the full distribution.  Using DEFAULT_WEIGHTS fallbacks here would
+        # let partial dicts silently exceed a sum of 1.0.
+        w = weights
+        fallback = 0.0
+    else:
+        w = DEFAULT_WEIGHTS
+        fallback = 0.0  # DEFAULT_WEIGHTS already has all keys
 
     total = (
-        w.get("semantic", 0.55) * semantic_score
-        + w.get("temporal", 0.30) * temporal_score
-        + w.get("frequency", 0.10) * frequency_score
-        + w.get("importance", 0.05) * importance_score
+        w.get("semantic", fallback) * semantic_score
+        + w.get("temporal", fallback) * temporal_score
+        + w.get("frequency", fallback) * frequency_score
+        + w.get("importance", fallback) * importance_score
     )
     return min(1.0, max(0.0, total))
 

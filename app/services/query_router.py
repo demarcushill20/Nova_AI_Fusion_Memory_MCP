@@ -136,10 +136,13 @@ class QueryRouter:
         if RoutingMode.SESSION in scores and RoutingMode.TEMPORAL in scores and len(scores) == 2:
             return RoutingMode.SESSION
 
-        # If temporal + another non-temporal mode matched, use TEMPORAL_SEMANTIC
+        # If temporal + only generic modes (VECTOR/GRAPH) matched, use TEMPORAL_SEMANTIC.
+        # If a specific mode (DECISION/PATTERN) also matched, let the priority
+        # tie-breaker below decide — those modes should not be overridden.
         if RoutingMode.TEMPORAL in scores and len(scores) > 1:
+            _GENERIC_MODES = {RoutingMode.VECTOR, RoutingMode.GRAPH, RoutingMode.HYBRID}
             non_temporal = {k: v for k, v in scores.items() if k != RoutingMode.TEMPORAL}
-            if non_temporal:
+            if non_temporal and all(m in _GENERIC_MODES for m in non_temporal):
                 logger.debug(
                     f"Temporal + {list(non_temporal.keys())} matched -> TEMPORAL_SEMANTIC "
                     f"for query: '{query_text[:80]}'"

@@ -240,27 +240,42 @@ class TestEmptyQuery:
 
 
 class TestTemporalSemanticCombo:
-    """Queries with both temporal and non-temporal intent route to TEMPORAL_SEMANTIC."""
+    """Queries with both temporal and specific-intent route to the specific mode.
+
+    TEMPORAL_SEMANTIC only applies when TEMPORAL matches alongside generic
+    modes (VECTOR/GRAPH).  Specific modes (DECISION/PATTERN/SESSION) win
+    via priority tie-breaking because the user's primary intent is the
+    specific mode, with temporal context being secondary.
+    """
 
     def test_recent_decisions_about_auth(self, router):
+        # DECISION is the primary intent; "recent" is secondary context
         mode = router.route("recent decisions about auth")
-        assert mode == RoutingMode.TEMPORAL_SEMANTIC
+        assert mode == RoutingMode.DECISION
 
     def test_latest_pattern_for_deployment(self, router):
+        # PATTERN is the primary intent; "latest" is secondary context
         mode = router.route("what is the latest best practice for deployment")
-        assert mode == RoutingMode.TEMPORAL_SEMANTIC
+        assert mode == RoutingMode.PATTERN
 
     def test_yesterday_session_events(self, router):
         mode = router.route("what happened in yesterday's session")
         # SESSION + TEMPORAL only -> SESSION (session replay with temporal context)
-        assert mode in (RoutingMode.SESSION, RoutingMode.TEMPORAL_SEMANTIC)
+        assert mode == RoutingMode.SESSION
 
     def test_recent_workflow_changes(self, router):
+        # PATTERN is the primary intent; "recent" is secondary context
         mode = router.route("what recent workflow changes were made")
-        assert mode == RoutingMode.TEMPORAL_SEMANTIC
+        assert mode == RoutingMode.PATTERN
 
     def test_latest_decision(self, router):
+        # DECISION is the primary intent; "latest" is secondary context
         mode = router.route("what was the latest decision we made")
+        assert mode == RoutingMode.DECISION
+
+    def test_temporal_plus_vector_gives_temporal_semantic(self, router):
+        # When TEMPORAL matches with only generic modes (VECTOR), TEMPORAL_SEMANTIC is correct
+        mode = router.route("tell me about the most recent research on databases")
         assert mode == RoutingMode.TEMPORAL_SEMANTIC
 
 

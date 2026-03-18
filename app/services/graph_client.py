@@ -596,6 +596,8 @@ class GraphClient:
         name_conditions = []
         params: Dict[str, Any] = {"limit": top_k}
         for i, name in enumerate(entity_names[:5]):  # Cap at 5 entities
+            if not isinstance(name, str) or not name.strip():
+                continue
             param_key = f"name_{i}"
             name_conditions.append(
                 f"(toLower(start.text) CONTAINS ${param_key} OR "
@@ -747,32 +749,7 @@ class GraphClient:
             return []
 
         # Find decisions and their 1-hop neighbors, filtering by query_text
-        query_fragment = query_text[:50] if query_text else ""
-
-        # Try query-filtered search first, fall back to recent decisions
-        cypher = f"""
-        MATCH (d:{NEO4J_NODE_LABEL})
-        WHERE d.memory_type IN ['decision', 'plan', 'strategy']
-          AND d.text IS NOT NULL
-          AND toLower(d.text) CONTAINS toLower($query_fragment)
-        WITH d
-        ORDER BY d.event_seq DESC
-        LIMIT 50
-        OPTIONAL MATCH (d)-[r]-(related:{NEO4J_NODE_LABEL})
-        WITH d, collect(DISTINCT {{
-            id: related.entity_id,
-            text: related.text,
-            rel_type: type(r),
-            memory_type: related.memory_type
-        }})[0..3] AS neighbors
-        RETURN d.entity_id AS id,
-               d.text AS text,
-               d.memory_type AS memory_type,
-               d.event_seq AS event_seq,
-               d.event_time AS event_time,
-               neighbors
-        LIMIT $limit
-        """
+        query_fragment = query_text.strip()[:50] if query_text else ""
 
         # Fallback query without text filter (recent decisions)
         cypher_fallback = f"""
@@ -798,19 +775,49 @@ class GraphClient:
         LIMIT $limit
         """
 
+        # Query-filtered search (only when we have a non-empty fragment)
+        cypher_filtered = f"""
+        MATCH (d:{NEO4J_NODE_LABEL})
+        WHERE d.memory_type IN ['decision', 'plan', 'strategy']
+          AND d.text IS NOT NULL
+          AND toLower(d.text) CONTAINS toLower($query_fragment)
+        WITH d
+        ORDER BY d.event_seq DESC
+        LIMIT 50
+        OPTIONAL MATCH (d)-[r]-(related:{NEO4J_NODE_LABEL})
+        WITH d, collect(DISTINCT {{
+            id: related.entity_id,
+            text: related.text,
+            rel_type: type(r),
+            memory_type: related.memory_type
+        }})[0..3] AS neighbors
+        RETURN d.entity_id AS id,
+               d.text AS text,
+               d.memory_type AS memory_type,
+               d.event_seq AS event_seq,
+               d.event_time AS event_time,
+               neighbors
+        LIMIT $limit
+        """
+
         results = []
         try:
             async with self.driver.session(database=self._DATABASE) as session:
-                result_cursor = await session.run(
-                    cypher, {"limit": top_k, "query_fragment": query_fragment}
-                )
-                records = await result_cursor.data()
+                records = []
 
-                # Fall back to recent decisions if query-filtered search returned nothing
-                if not records and query_fragment:
+                # Try query-filtered search only if we have a non-empty fragment
+                if query_fragment:
+                    result_cursor = await session.run(
+                        cypher_filtered, {"limit": top_k, "query_fragment": query_fragment}
+                    )
+                    records = await result_cursor.data()
+
+                # Fall back to recent decisions if no fragment or no filtered results
+                if not records:
                     logger.debug(
-                        "find_related_decisions: no results for query fragment, "
-                        "falling back to recent decisions."
+                        "find_related_decisions: %s, "
+                        "falling back to recent decisions.",
+                        "empty query" if not query_fragment else "no results for query fragment",
                     )
                     result_cursor = await session.run(
                         cypher_fallback, {"limit": top_k}

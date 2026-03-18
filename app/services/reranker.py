@@ -59,7 +59,7 @@ class CrossEncoderReranker:
         self.model: Optional[Any] = None  # CrossEncoder instance or None
         self._loaded = False
         self._load_attempts = 0
-        self._load_lock: Optional[asyncio.Lock] = None
+        self._load_lock = asyncio.Lock()
         logger.info(f"CrossEncoderReranker initialized for model '{self.model_name}' on device '{self.device}'. Model loading deferred.")
 
     async def load_model(self) -> bool:
@@ -121,9 +121,6 @@ class CrossEncoderReranker:
         """
         if self._loaded and self.model:
             return True
-        # Lazy-init the lock (safe: only one coroutine runs at a time per event loop)
-        if self._load_lock is None:
-            self._load_lock = asyncio.Lock()
         async with self._load_lock:
             # Double-check after acquiring lock
             if self._loaded and self.model:
