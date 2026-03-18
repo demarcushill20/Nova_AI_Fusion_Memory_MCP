@@ -105,7 +105,13 @@ class PineconeClient:
             logger.error(f"❌ Failed to upsert vector ID {vector_id}: {e}", exc_info=True)
             return False
 
-    def query_vector(self, query_vector: List[float], top_k: int, filter: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def query_vector(
+        self,
+        query_vector: List[float],
+        top_k: int,
+        filter: Optional[Dict[str, Any]] = None,
+        include_values: bool = False,
+    ) -> List[Dict[str, Any]]:
         """
         Queries the Pinecone index for similar vectors.
 
@@ -113,9 +119,11 @@ class PineconeClient:
             query_vector: The embedding vector of the query.
             top_k: The number of top results to retrieve.
             filter: Optional dictionary for metadata filtering (e.g., {"category": "conversation"}).
+            include_values: If True, include embedding vectors in results (needed for MMR dedup).
 
         Returns:
-            A list of matching results (dictionaries with id, score, metadata), or an empty list on error.
+            A list of matching results (dictionaries with id, score, metadata,
+            and optionally values), or an empty list on error.
         """
         if not self.index:
             logger.error("Pinecone index not initialized. Cannot query vectors.")
@@ -126,12 +134,12 @@ class PineconeClient:
                 "vector": query_vector,
                 "top_k": top_k,
                 "include_metadata": True,
-                "include_values": False # Usually not needed for results
+                "include_values": include_values,
             }
             if filter:
                 query_params["filter"] = filter
 
-            logger.debug(f"Querying Pinecone with top_k={top_k}, filter={filter}")
+            logger.debug(f"Querying Pinecone with top_k={top_k}, filter={filter}, include_values={include_values}")
             results = self.index.query(**query_params)
             logger.info(f"Pinecone query returned {len(results.get('matches', []))} matches.")
             return results.get("matches", [])
