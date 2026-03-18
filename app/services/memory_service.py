@@ -669,7 +669,7 @@ class MemoryService:
         if not fused_results:
             return [], "rrf_only"
 
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         # --- Tier 1: Local CrossEncoder ---
         if self.reranker:
@@ -862,7 +862,7 @@ class MemoryService:
                 )
                 if duplicate_info:
                     category = metadata.get("category", metadata.get("memory_type", ""))
-                    on_duplicate = metadata.pop("on_duplicate", "auto")
+                    on_duplicate = metadata.get("on_duplicate", "auto")
                     action = resolve_duplicate_action(duplicate_info, on_duplicate, category)
                     logger.info(
                         f"WRITE_DEDUP id={item_id} action={action} "

@@ -88,11 +88,17 @@ def mmr_rerank(
     emb_matrix = np.array(embeddings, dtype=np.float64)
 
     # Extract relevance scores (prefer composite > rerank > rrf)
+    def _pick_score(r: Dict[str, Any]) -> float:
+        cs = r.get("composite_score")
+        if cs is not None:
+            return float(cs)
+        rs = r.get("rerank_score")
+        if rs is not None:
+            return float(rs)
+        return float(r.get("rrf_score", 0.5))
+
     rel_scores = np.array([
-        r.get("composite_score")
-        or r.get("rerank_score")
-        or r.get("rrf_score", 0.5)
-        for r in results
+        _pick_score(r) for r in results
     ], dtype=np.float64)
 
     # Normalize relevance scores to [0, 1]

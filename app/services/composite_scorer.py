@@ -44,12 +44,13 @@ def composite_score(
     """
     w = weights or DEFAULT_WEIGHTS
 
-    return (
+    total = (
         w.get("semantic", 0.55) * semantic_score
         + w.get("temporal", 0.30) * temporal_score
         + w.get("frequency", 0.10) * frequency_score
         + w.get("importance", 0.05) * importance_score
     )
+    return min(1.0, max(0.0, total))
 
 
 def normalize_semantic_score(

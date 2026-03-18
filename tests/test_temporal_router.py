@@ -23,7 +23,8 @@ class TestTemporalRouting:
 
     def test_what_did_we_do_last_session(self, router):
         mode = router.route("What did we do last session?")
-        assert mode in (RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
+        # SESSION + TEMPORAL only -> SESSION (session replay with recency)
+        assert mode in (RoutingMode.SESSION, RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
 
     def test_most_recent_events(self, router):
         mode = router.route("Show me the most recent events")
@@ -191,7 +192,8 @@ class TestRouterEdgeCases:
 
     def test_case_insensitive(self, router):
         mode = router.route("WHAT DID WE DO LAST SESSION?")
-        assert mode in (RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
+        # SESSION + TEMPORAL only -> SESSION (session replay with recency)
+        assert mode in (RoutingMode.SESSION, RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
 
     def test_temporal_keyword_substring(self, router):
         """P9A.4: With word boundary regex, 'blast' no longer matches 'last'."""

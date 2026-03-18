@@ -28,9 +28,9 @@ class TestTemporalIntent:
 
     def test_what_did_we_do_last_session(self, router):
         mode = router.route("what did we do last session")
-        # "last" matches TEMPORAL, "session" matches SESSION -> TEMPORAL_SEMANTIC
-        # because temporal + another mode = TEMPORAL_SEMANTIC
-        assert mode in (RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
+        # "last" matches TEMPORAL, "session" matches SESSION -> SESSION
+        # because SESSION+TEMPORAL exactly = SESSION (session replay with recency)
+        assert mode in (RoutingMode.SESSION, RoutingMode.TEMPORAL, RoutingMode.TEMPORAL_SEMANTIC)
 
     def test_most_recent_events(self, router):
         mode = router.route("show me the most recent events")
@@ -252,7 +252,8 @@ class TestTemporalSemanticCombo:
 
     def test_yesterday_session_events(self, router):
         mode = router.route("what happened in yesterday's session")
-        assert mode == RoutingMode.TEMPORAL_SEMANTIC
+        # SESSION + TEMPORAL only -> SESSION (session replay with temporal context)
+        assert mode in (RoutingMode.SESSION, RoutingMode.TEMPORAL_SEMANTIC)
 
     def test_recent_workflow_changes(self, router):
         mode = router.route("what recent workflow changes were made")

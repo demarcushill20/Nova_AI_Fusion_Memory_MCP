@@ -78,6 +78,9 @@ def extract_entities(text: str) -> list[ExtractedEntity]:
     Returns:
         List of extracted entities, sorted by confidence descending.
     """
+    if not text:
+        return []
+
     entities: list[ExtractedEntity] = []
     seen_names: set[str] = set()
     text_lower = text.lower()

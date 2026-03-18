@@ -101,6 +101,10 @@ class QueryRouter:
 
     def __init__(self):
         self._llm_cache: Dict[str, RoutingMode] = {}
+        self._llm_enabled: bool = (
+            os.environ.get("QUERY_ROUTER_LLM_ENABLED", "false").lower()
+            in ("true", "1", "yes")
+        )
         logger.info("QueryRouter initialized with pattern-based intent classification.")
 
     def route(self, query_text: str) -> RoutingMode:
@@ -128,6 +132,10 @@ class QueryRouter:
             logger.debug(f"No intent patterns matched for query: '{query_text[:80]}'. Defaulting to HYBRID.")
             return RoutingMode.HYBRID
 
+        # If session + temporal both matched (but no other), prefer SESSION
+        if RoutingMode.SESSION in scores and RoutingMode.TEMPORAL in scores and len(scores) == 2:
+            return RoutingMode.SESSION
+
         # If temporal + another non-temporal mode matched, use TEMPORAL_SEMANTIC
         if RoutingMode.TEMPORAL in scores and len(scores) > 1:
             non_temporal = {k: v for k, v in scores.items() if k != RoutingMode.TEMPORAL}
@@ -137,10 +145,6 @@ class QueryRouter:
                     f"for query: '{query_text[:80]}'"
                 )
                 return RoutingMode.TEMPORAL_SEMANTIC
-
-        # If session + temporal both matched (but no other), prefer SESSION
-        if RoutingMode.SESSION in scores and RoutingMode.TEMPORAL in scores and len(scores) == 2:
-            return RoutingMode.SESSION
 
         # Check for ambiguous case (multiple modes with equal top score)
         max_score = max(scores.values())
@@ -153,9 +157,10 @@ class QueryRouter:
             chosen = self._break_tie(top_modes)
 
             # If LLM routing is enabled, try LLM for ambiguous cases
-            llm_result = self.route_with_llm(query_text)
-            if llm_result is not None:
-                chosen = llm_result
+            if self._llm_enabled:
+                llm_result = self.route_with_llm(query_text)
+                if llm_result is not None:
+                    chosen = llm_result
 
         logger.info(
             f"QUERY_ROUTE query={query_text[:50]!r} mode={chosen.name}"

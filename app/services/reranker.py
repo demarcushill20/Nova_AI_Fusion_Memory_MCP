@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import time
 from typing import List, Dict, Any, Tuple, Optional
 
@@ -60,6 +59,7 @@ class CrossEncoderReranker:
         self.model: Optional[Any] = None  # CrossEncoder instance or None
         self._loaded = False
         self._load_attempts = 0
+        self._load_lock: Optional[asyncio.Lock] = None
         logger.info(f"CrossEncoderReranker initialized for model '{self.model_name}' on device '{self.device}'. Model loading deferred.")
 
     async def load_model(self) -> bool:
@@ -117,17 +117,25 @@ class CrossEncoderReranker:
         """Lazy-load reranker on first query, with retry.
 
         Returns True if model is ready, False if all retries exhausted.
+        Uses an asyncio.Lock to prevent concurrent model loading.
         """
         if self._loaded and self.model:
             return True
-        if self._load_attempts >= 3:
-            logger.warning(
-                f"CrossEncoderReranker: giving up after {self._load_attempts} failed load attempts."
-            )
-            return False
-        self._load_attempts += 1
-        logger.info(f"CrossEncoderReranker: lazy-load attempt {self._load_attempts}/3")
-        return await self.load_model()
+        # Lazy-init the lock (safe: only one coroutine runs at a time per event loop)
+        if self._load_lock is None:
+            self._load_lock = asyncio.Lock()
+        async with self._load_lock:
+            # Double-check after acquiring lock
+            if self._loaded and self.model:
+                return True
+            if self._load_attempts >= 3:
+                logger.warning(
+                    f"CrossEncoderReranker: giving up after {self._load_attempts} failed load attempts."
+                )
+                return False
+            self._load_attempts += 1
+            logger.info(f"CrossEncoderReranker: lazy-load attempt {self._load_attempts}/3")
+            return await self.load_model()
 
     async def rerank(self, query: str, results: List[Dict[str, Any]], top_n: int = 15) -> List[Dict[str, Any]]:
         """

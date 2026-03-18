@@ -89,14 +89,14 @@ async def detect_conflicts(
             pinecone_client,
             new_embedding,
             top_k=5,
-            filter_dict={"category": {"$eq": category}},
+            filter_dict={"memory_type": {"$eq": category}},
         )
 
         conflicts = []
         for r in results:
             score = float(r.get("score", 0))
             # Similar but not duplicate = potential conflict
-            if CONFLICT_THRESHOLD_LOW < score < CONFLICT_THRESHOLD_HIGH:
+            if CONFLICT_THRESHOLD_LOW <= score < CONFLICT_THRESHOLD_HIGH:
                 conflicts.append({
                     "id": r.get("id", ""),
                     "text": r.get("metadata", {}).get("text", ""),
@@ -112,7 +112,7 @@ async def detect_conflicts(
 
 def resolve_duplicate_action(
     duplicate: Optional[Dict[str, Any]],
-    on_duplicate: str = "skip",
+    on_duplicate: str = "auto",
     category: Optional[str] = None,
 ) -> str:
     """Determine what to do when a duplicate is found.
