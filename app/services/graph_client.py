@@ -1,6 +1,6 @@
 import logging
 import asyncio
-from neo4j import AsyncGraphDatabase, exceptions as neo4j_exceptions, AsyncDriver, AsyncSession, Result # Import async components
+from neo4j import AsyncGraphDatabase, exceptions as neo4j_exceptions, AsyncDriver, Result # Import async components
 from typing import List, Dict, Any, Optional
 
 # Import settings from the config module
@@ -561,6 +561,244 @@ class GraphClient:
             logger.error(f"Failed to get latest session: {e}", exc_info=True)
             return None
 
+    # --- Phase P9A.6: Graph-Augmented Retrieval ---
+
+    async def query_graph_multihop(
+        self,
+        entity_names: List[str],
+        max_hops: int = 2,
+        top_k: int = 20,
+    ) -> List[Dict[str, Any]]:
+        """Multi-hop graph traversal starting from entity nodes.
+
+        Finds nodes matching entity names, then traverses relationships
+        up to max_hops deep to find related memories.
+
+        Args:
+            entity_names: Entity names to use as starting points.
+            max_hops: Maximum traversal depth (1-3, clamped).
+            top_k: Maximum results to return.
+
+        Returns:
+            List of memory dicts with graph_score based on hop distance.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot query graph multihop.")
+            return []
+
+        if not entity_names:
+            return []
+
+        max_hops = max(1, min(max_hops, 3))
+
+        # Build WHERE clause to match entity names in text or entity_id
+        # Use CONTAINS for flexible matching
+        name_conditions = []
+        params: Dict[str, Any] = {"limit": top_k}
+        for i, name in enumerate(entity_names[:5]):  # Cap at 5 entities
+            param_key = f"name_{i}"
+            name_conditions.append(
+                f"(toLower(start.text) CONTAINS ${param_key} OR "
+                f"toLower(start.entity_id) CONTAINS ${param_key})"
+            )
+            params[param_key] = name.lower()
+
+        if not name_conditions:
+            return []
+
+        where_clause = " OR ".join(name_conditions)
+
+        # Multi-hop traversal with distance scoring
+        cypher = f"""
+        MATCH (start:{NEO4J_NODE_LABEL})
+        WHERE {where_clause}
+        WITH start
+        MATCH path = (start)-[*1..{max_hops}]-(related:{NEO4J_NODE_LABEL})
+        WHERE related <> start
+        WITH DISTINCT related, min(length(path)) AS distance
+        RETURN related.entity_id AS id,
+               related.text AS text,
+               related AS node_properties,
+               distance,
+               1.0 / (1.0 + distance) AS graph_score
+        ORDER BY graph_score DESC, related.event_seq DESC
+        LIMIT $limit
+        """
+
+        results = []
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result_cursor = await session.run(cypher, params)
+                records = await result_cursor.data()
+
+                for record in records:
+                    node_props = dict(record.get("node_properties", {}))
+                    results.append({
+                        "id": record.get("id"),
+                        "text": record.get("text"),
+                        "source": "graph_multihop",
+                        "score": record.get("graph_score", 0.0),
+                        "graph_score": record.get("graph_score", 0.0),
+                        "hop_distance": record.get("distance", 0),
+                        "metadata": {
+                            k: v for k, v in node_props.items()
+                            if k not in ["entity_id", "text"]
+                        },
+                    })
+
+            logger.info(
+                f"Graph multihop query returned {len(results)} results "
+                f"(entities={entity_names[:3]}, hops={max_hops})."
+            )
+            return results
+        except Exception as e:
+            logger.error(f"Failed to query graph multihop: {e}", exc_info=True)
+            return []
+
+    async def get_session_chain(
+        self, session_id: str, depth: int = 5
+    ) -> List[Dict[str, Any]]:
+        """Traverse session FOLLOWS chain to get session history.
+
+        Args:
+            session_id: Starting session ID.
+            depth: Maximum number of sessions to traverse back.
+
+        Returns:
+            List of session dicts ordered from newest to oldest.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized. Cannot get session chain.")
+            return []
+
+        depth = max(1, min(depth, 20))
+
+        cypher = """
+        MATCH (start:Session {session_id: $session_id})
+        OPTIONAL MATCH path = (start)-[:FOLLOWS*1..DEPTH_PLACEHOLDER]->(ancestor:Session)
+        WITH start, ancestor, length(path) AS chain_distance
+        ORDER BY chain_distance ASC
+        WITH collect({
+            session_id: ancestor.session_id,
+            started_at: ancestor.started_at,
+            ended_at: ancestor.ended_at,
+            last_event_seq: ancestor.last_event_seq,
+            summary: ancestor.summary,
+            project: ancestor.project,
+            chain_distance: chain_distance
+        }) AS ancestors
+        RETURN {
+            session_id: start.session_id,
+            started_at: start.started_at,
+            ended_at: start.ended_at,
+            last_event_seq: start.last_event_seq,
+            summary: start.summary,
+            project: start.project,
+            chain_distance: 0
+        } AS current, ancestors
+        """.replace("DEPTH_PLACEHOLDER", str(depth))
+
+        results = []
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result_cursor = await session.run(
+                    cypher, {"session_id": session_id}
+                )
+                record = await result_cursor.single()
+                await result_cursor.consume()
+
+                if record:
+                    current = record.get("current")
+                    if current:
+                        results.append(dict(current))
+                    ancestors = record.get("ancestors", [])
+                    for a in ancestors:
+                        if a and a.get("session_id"):
+                            results.append(dict(a))
+
+            logger.info(
+                f"Session chain for {session_id}: {len(results)} sessions."
+            )
+            return results
+        except Exception as e:
+            logger.error(
+                f"Failed to get session chain for {session_id}: {e}",
+                exc_info=True,
+            )
+            return []
+
+    async def find_related_decisions(
+        self, query_text: str, top_k: int = 10
+    ) -> List[Dict[str, Any]]:
+        """Find decision-type nodes and their related memories.
+
+        Useful for decision recall: finds decisions then traverses to
+        related context, research, and outcomes.
+
+        Args:
+            query_text: The decision query text (used for text matching).
+            top_k: Maximum results to return.
+
+        Returns:
+            List of decision + related memory dicts.
+        """
+        if not self.driver:
+            logger.error("Neo4j driver not initialized.")
+            return []
+
+        # Find decisions and their 1-hop neighbors
+        cypher = f"""
+        MATCH (d:{NEO4J_NODE_LABEL})
+        WHERE d.memory_type IN ['decision', 'plan', 'strategy']
+          AND d.text IS NOT NULL
+        WITH d
+        ORDER BY d.event_seq DESC
+        LIMIT 50
+        OPTIONAL MATCH (d)-[r]-(related:{NEO4J_NODE_LABEL})
+        WITH d, collect(DISTINCT {{
+            id: related.entity_id,
+            text: related.text,
+            rel_type: type(r),
+            memory_type: related.memory_type
+        }})[0..3] AS neighbors
+        RETURN d.entity_id AS id,
+               d.text AS text,
+               d.memory_type AS memory_type,
+               d.event_seq AS event_seq,
+               d.event_time AS event_time,
+               neighbors
+        LIMIT $limit
+        """
+
+        results = []
+        try:
+            async with self.driver.session(database=self._DATABASE) as session:
+                result_cursor = await session.run(
+                    cypher, {"limit": top_k}
+                )
+                records = await result_cursor.data()
+
+                for record in records:
+                    result = {
+                        "id": record.get("id"),
+                        "text": record.get("text"),
+                        "source": "graph_decision",
+                        "score": 0.0,
+                        "metadata": {
+                            "memory_type": record.get("memory_type"),
+                            "event_seq": record.get("event_seq"),
+                            "event_time": record.get("event_time"),
+                            "related_nodes": record.get("neighbors", []),
+                        },
+                    }
+                    results.append(result)
+
+            logger.info(f"find_related_decisions returned {len(results)} results.")
+            return results
+        except Exception as e:
+            logger.error(f"Failed to find related decisions: {e}", exc_info=True)
+            return []
+
     async def delete_graph_data(self, node_id: str) -> bool:
         """
         Deletes a node from the Neo4j graph by its unique ID ('entity_id').
@@ -620,7 +858,7 @@ async def _test_graph_client():
     assert upsert_ok
 
     # Test Query
-    print(f"\nAttempting query (simple retrieve)...")
+    print("\nAttempting query (simple retrieve)...")
     matches = await client.query_graph(query_text="dummy", top_k=5) # Query text unused in simple strategy
     print(f"Query returned {len(matches)} matches.")
     found = False
@@ -641,14 +879,14 @@ async def _test_graph_client():
     assert delete_ok
 
     # Test Query After Delete
-    print(f"\nAttempting query after delete...")
+    print("\nAttempting query after delete...")
     matches_after_delete = await client.query_graph(query_text="dummy", top_k=5)
     print(f"Query after delete returned {len(matches_after_delete)} matches.")
     found_after_delete = any(match.get("id") == test_id for match in matches_after_delete)
     assert not found_after_delete
 
     # Test Health Check
-    print(f"\nAttempting health check...")
+    print("\nAttempting health check...")
     health_ok = await client.check_connection()
     print(f"Health check successful: {health_ok}")
     assert health_ok

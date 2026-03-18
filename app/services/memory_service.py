@@ -20,6 +20,7 @@ try:
     from .composite_scorer import composite_score, normalize_semantic_score
     from .mmr_dedup import deduplicate_exact, mmr_rerank
     from .conflict_detector import check_semantic_duplicate, detect_conflicts, resolve_duplicate_action
+    from .entity_extractor import extract_entities
 except ImportError as e:
     print(f"Error importing modules in memory_service.py: {e}. Ensure all service files and Nova modules exist.")
     # Depending on severity, might raise error or proceed with caution
@@ -273,6 +274,17 @@ class MemoryService:
                 exc,
             )
 
+        # P9A.6: Try graph-based decision recall
+        try:
+            graph_decisions = await self.graph_client.find_related_decisions(
+                query_text=query_text, top_k=top_k_final
+            )
+            if graph_decisions:
+                logger.info(f"DECISION graph recall: found {len(graph_decisions)} decisions.")
+                return graph_decisions
+        except Exception as exc:
+            logger.warning(f"Graph decision recall failed: {exc}")
+
         # Fallback: standard semantic pipeline
         logger.info("DECISION fallback -> standard semantic query (no decision-typed results found).")
         return await self._semantic_query(query_text, top_k_vector, top_k_final)
@@ -423,6 +435,25 @@ class MemoryService:
         if not vector_results and not graph_results:
              logger.warning("No results from either vector or graph store.")
              return []
+
+        # P9A.6: Graph-augmented retrieval via multi-hop traversal
+        try:
+            entities = extract_entities(query_text)
+            if entities:
+                entity_names = [e.name for e in entities[:5]]
+                multihop_results = await self.graph_client.query_graph_multihop(
+                    entity_names=entity_names,
+                    max_hops=2,
+                    top_k=min(20, top_k_vector),
+                )
+                if multihop_results:
+                    graph_results = graph_results + multihop_results
+                    logger.info(
+                        f"P9A.6: Added {len(multihop_results)} multi-hop graph results "
+                        f"for entities: {entity_names}"
+                    )
+        except Exception as e:
+            logger.warning(f"Graph multi-hop retrieval failed (non-fatal): {e}")
 
         try:
             logger.debug(f"Merging {len(vector_results)} vector and {len(graph_results)} graph results...")
