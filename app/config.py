@@ -60,6 +60,23 @@ class Settings(BaseSettings):
     # Query Router Configuration (Phase P9A.4)
     QUERY_ROUTER_LLM_ENABLED: bool = False  # Set True to enable LLM-based query classification
 
+    # ------------------------------------------------------------------ #
+    # Associative Linking feature flags (PLAN-0759, ADR-0759)            #
+    # ------------------------------------------------------------------ #
+    # All flags default to False. Sprint 1 only declares them; the       #
+    # subsystems they gate are introduced in PLAN-0759 Phase 1 and       #
+    # later, inside app/services/associations/. No code currently        #
+    # reads these flags; flipping them today is a no-op.                 #
+    # ------------------------------------------------------------------ #
+    ASSOC_SIMILARITY_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 1: similarity_linker writes (:base)-[:SIMILAR_TO]->(:base)
+    ASSOC_ENTITY_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 2: entity_linker writes shared-entity edges
+    ASSOC_TEMPORAL_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 3: temporal_linker writes MEMORY_FOLLOWS adjacency edges
+    ASSOC_PROVENANCE_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 5a/5b/5c/5d: provenance edges (source/derivation tracking)
+    ASSOC_COOCCURRENCE_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 6: cooccurrence linker (session/window co-mention)
+    ASSOC_TASK_HEURISTIC_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 7b: task_heuristic linker (deferred phase)
+    ASSOC_GRAPH_RECALL_ENABLED: bool = False  # PLAN-0759 Phase 4: associative_recall traversal on the read path
+    ASSOC_CROSS_PROJECT_ENABLED: bool = False  # PLAN-0759: opt-in cross-project linking; single-project is the default
+
     @model_validator(mode="before")
     @classmethod
     def _normalize_mixed_case_env_keys(cls, data):
@@ -91,6 +108,15 @@ class Settings(BaseSettings):
             ("WRITE_DEDUP_THRESHOLD", "write_dedup_threshold"),
             ("CONFLICT_DETECTION_ENABLED", "conflict_detection_enabled"),
             ("QUERY_ROUTER_LLM_ENABLED", "query_router_llm_enabled"),
+            # Associative Linking flags (PLAN-0759 / ADR-0759)
+            ("ASSOC_SIMILARITY_WRITE_ENABLED", "assoc_similarity_write_enabled"),
+            ("ASSOC_ENTITY_WRITE_ENABLED", "assoc_entity_write_enabled"),
+            ("ASSOC_TEMPORAL_WRITE_ENABLED", "assoc_temporal_write_enabled"),
+            ("ASSOC_PROVENANCE_WRITE_ENABLED", "assoc_provenance_write_enabled"),
+            ("ASSOC_COOCCURRENCE_WRITE_ENABLED", "assoc_cooccurrence_write_enabled"),
+            ("ASSOC_TASK_HEURISTIC_WRITE_ENABLED", "assoc_task_heuristic_write_enabled"),
+            ("ASSOC_GRAPH_RECALL_ENABLED", "assoc_graph_recall_enabled"),
+            ("ASSOC_CROSS_PROJECT_ENABLED", "assoc_cross_project_enabled"),
         )
 
         for canonical, lowercase in key_aliases:

@@ -178,6 +178,43 @@ class PineconeClient:
             logger.error(f"❌ Failed to delete vector ID {vector_id}: {e}", exc_info=True)
             return False
 
+    def fetch_vectors(self, ids: list[str]) -> list[dict]:
+        """Fetch vectors and metadata by IDs from Pinecone.
+
+        Returns a list of dicts with keys ``{id, metadata, values}`` for
+        each ID found. Missing IDs are silently skipped.
+        """
+        if not ids:
+            return []
+        if not self.index:
+            logger.error("Pinecone index not initialized. Cannot fetch vectors.")
+            return []
+        try:
+            response = self.index.fetch(ids=ids)
+            results = []
+            vectors = response.get("vectors", {}) if isinstance(response, dict) else getattr(response, "vectors", {})
+            for id_, vector_data in vectors.items():
+                if isinstance(vector_data, dict):
+                    results.append({
+                        "id": id_,
+                        "metadata": vector_data.get("metadata", {}),
+                        "values": vector_data.get("values"),
+                    })
+                else:
+                    # Pinecone SDK may return objects with attribute access
+                    results.append({
+                        "id": id_,
+                        "metadata": getattr(vector_data, "metadata", {}),
+                        "values": getattr(vector_data, "values", None),
+                    })
+            return results
+        except PineconeException as pe:
+            logger.warning(f"Pinecone fetch failed: {pe}")
+            return []
+        except Exception as e:
+            logger.warning(f"Pinecone fetch failed: {e}")
+            return []
+
     def check_connection(self) -> bool:
         """
         Checks the connection to the Pinecone index by fetching stats.

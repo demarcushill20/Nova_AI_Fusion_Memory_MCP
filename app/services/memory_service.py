@@ -51,6 +51,48 @@ class MemoryService:
         )
         self.redis_timeline: Optional[RedisTimeline] = None
 
+        # PLAN-0759 Phase 2 / Sprint 6: write-time similarity linker (lazy).
+        # Stays None and zero-cost until the first perform_upsert() observes
+        # ASSOC_SIMILARITY_WRITE_ENABLED=True. Importing SimilarityLinker here
+        # would defeat the flag-off-zero-cost contract, so the class is
+        # imported inside the hook block in perform_upsert().
+        self._similarity_linker: Any = None
+
+        # PLAN-0759 Phase 3 / Sprint 9: write-time entity linker (lazy).
+        # Same flag-off-zero-cost contract as the similarity linker above:
+        # stays None until ASSOC_ENTITY_WRITE_ENABLED=True is first observed.
+        self._entity_linker: Any = None
+
+        # PLAN-0759 Phase 4 / Sprint 11: write-time temporal linker (lazy).
+        # Same flag-off-zero-cost contract as the similarity and entity
+        # linkers above: stays None until ASSOC_TEMPORAL_WRITE_ENABLED=True
+        # is first observed inside perform_upsert().
+        self._temporal_linker: Any = None
+
+        # PLAN-0759 Phase 5a: write-time supersession/provenance edge
+        # service (lazy). Same flag-off-zero-cost contract as the other
+        # linkers above: stays None until ASSOC_PROVENANCE_WRITE_ENABLED=True
+        # is first observed inside perform_upsert().
+        self._provenance_edge_service: Any = None
+
+        # PLAN-0759 Phase 7a: write-time co-occurrence linker (lazy).
+        # Same flag-off-zero-cost contract as the other linkers above:
+        # stays None until ASSOC_COOCCURRENCE_WRITE_ENABLED=True is first
+        # observed inside perform_upsert().
+        self._cooccurrence_linker: Any = None
+
+        # PLAN-0759 Phase 7b: write-time task-heuristic linker (lazy).
+        # Same flag-off-zero-cost contract as the other linkers above:
+        # stays None until ASSOC_TASK_HEURISTIC_WRITE_ENABLED=True is
+        # first observed inside perform_upsert().
+        self._task_heuristic_linker: Any = None
+
+        # PLAN-0759 Phase 6: graph-expanded recall (lazy).
+        # Same flag-off-zero-cost contract as the other linkers above:
+        # stays None until ASSOC_GRAPH_RECALL_ENABLED=True is first
+        # observed inside perform_query() with expand_graph=True.
+        self._associative_recall: Any = None
+
         # Flag to track initialization status
         self._initialized = False
         self._reranker_loaded = False
@@ -151,7 +193,14 @@ class MemoryService:
         # Pinecone client might not need explicit closing depending on version
         logger.info("MemoryService resources closed.")
 
-    async def perform_query(self, query_text: str, top_k_vector: int = 50, top_k_final: int = 15) -> List[Dict[str, Any]]:
+    async def perform_query(
+        self,
+        query_text: str,
+        top_k_vector: int = 50,
+        top_k_final: int = 15,
+        expand_graph: bool = False,
+        intent: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         """
         Performs a memory query using routing-aware retrieval.
 
@@ -163,10 +212,17 @@ class MemoryService:
         - SESSION: timeline-first via session events
         - VECTOR/GRAPH/HYBRID: existing semantic pipeline (unchanged)
 
+        Phase 6 (PLAN-0759): When ``expand_graph=True`` and
+        ``ASSOC_GRAPH_RECALL_ENABLED`` is set, results are expanded via
+        graph traversal before being returned. The ``intent`` parameter
+        controls which edge types are prioritized during traversal.
+
         Args:
             query_text: The user's query.
             top_k_vector: Number of initial results to fetch from Pinecone.
             top_k_final: Number of final results to return after reranking.
+            expand_graph: If True, expand results via associative graph traversal.
+            intent: Recall intent for graph expansion edge selection.
 
         Returns:
             A list of relevant memory items, sorted by relevance or recency.
@@ -190,7 +246,6 @@ class MemoryService:
             logger.info("Using TEMPORAL path: pure recency retrieval.")
             results = await self.get_recent_events(n=top_k_final)
             self._tag_routing_mode(results, routing_mode)
-            return results
 
         elif routing_mode == RoutingMode.TEMPORAL_SEMANTIC:
             # Stage 1: Get temporal window
@@ -200,19 +255,17 @@ class MemoryService:
                 logger.info("No recent events found, falling back to full semantic pipeline.")
                 results = await self._semantic_query(query_text, top_k_vector, top_k_final)
                 self._tag_routing_mode(results, routing_mode)
-                return results
-
-            # Stage 2: Semantic search constrained to the temporal window
-            min_seq = min(
-                r.get("metadata", {}).get("event_seq", 0) for r in recent
-            )
-            logger.info(f"Temporal window: event_seq >= {min_seq}. Running semantic within window.")
-            results = await self._semantic_query(
-                query_text, top_k_vector, top_k_final,
-                pinecone_filter={"event_seq": {"$gte": min_seq}},
-            )
-            self._tag_routing_mode(results, routing_mode)
-            return results
+            else:
+                # Stage 2: Semantic search constrained to the temporal window
+                min_seq = min(
+                    r.get("metadata", {}).get("event_seq", 0) for r in recent
+                )
+                logger.info(f"Temporal window: event_seq >= {min_seq}. Running semantic within window.")
+                results = await self._semantic_query(
+                    query_text, top_k_vector, top_k_final,
+                    pinecone_filter={"event_seq": {"$gte": min_seq}},
+                )
+                self._tag_routing_mode(results, routing_mode)
 
         elif routing_mode == RoutingMode.DECISION:
             # Decision recall: graph-first query filtered to decision types,
@@ -220,27 +273,86 @@ class MemoryService:
             logger.info("Using DECISION path: graph-first + temporal weighting.")
             results = await self._decision_query(query_text, top_k_vector, top_k_final)
             self._tag_routing_mode(results, routing_mode)
-            return results
 
         elif routing_mode == RoutingMode.PATTERN:
             # Pattern recall: high-weight graph query for workflow/pattern nodes
             logger.info("Using PATTERN path: graph-weighted semantic query.")
             results = await self._pattern_query(query_text, top_k_vector, top_k_final)
             self._tag_routing_mode(results, routing_mode)
-            return results
 
         elif routing_mode == RoutingMode.SESSION:
             # Session replay: timeline-first via session events
             logger.info("Using SESSION path: timeline-first session replay.")
             results = await self._session_query(query_text, top_k_final)
             self._tag_routing_mode(results, routing_mode)
-            return results
 
         else:
             # Existing behavior: full semantic pipeline (VECTOR, GRAPH, HYBRID)
             results = await self._semantic_query(query_text, top_k_vector, top_k_final)
             self._tag_routing_mode(results, routing_mode)
-            return results
+
+        # Phase 6 (PLAN-0759): Graph-expanded recall
+        if expand_graph and settings.ASSOC_GRAPH_RECALL_ENABLED:
+            try:
+                if self._associative_recall is None:
+                    if self.graph_client.driver is None:
+                        logger.warning("Graph expansion skipped: Neo4j driver not available")
+                    else:
+                        from app.services.associations.edge_service import MemoryEdgeService
+                        from app.services.associations.associative_recall import AssociativeRecall
+                        edge_svc = MemoryEdgeService(self.graph_client.driver)
+                        fetcher = self._make_content_fetcher()
+                        self._associative_recall = AssociativeRecall(edge_svc, content_fetcher=fetcher)
+                if self._associative_recall is not None:
+                    results = await self._associative_recall.expand(
+                        results,
+                        intent=intent or "general",
+                    )
+                    # Sort by composite_score: this is the same key
+                    # _semantic_query already used to rank seeds, and
+                    # AssociativeRecall writes decayed scores into the
+                    # same field on expansion candidates so seeds and
+                    # expansion candidates are comparable. rrf_score
+                    # here would mix score domains and displace every
+                    # seed (Phase 6 eval, 2026-04-15).
+                    results.sort(
+                        key=lambda r: r.get("composite_score", r.get("rrf_score", 0.0)),
+                        reverse=True,
+                    )
+                    results = results[:top_k_final]
+            except Exception as exc:
+                logger.warning("Graph expansion failed (non-fatal): %s", exc)
+
+        return results
+
+    def _make_content_fetcher(self):
+        """Create a content fetcher that retrieves memory content by IDs.
+
+        Returns an async callable ``(ids: list[str]) -> list[dict]`` that
+        uses :meth:`PineconeClient.fetch_vectors` to get metadata for a
+        batch of memory IDs. Used by :class:`AssociativeRecall` to
+        hydrate expansion candidates with full content.
+        """
+        pinecone_client = self.pinecone_client
+
+        async def fetch(ids: list) -> list:
+            if not ids:
+                return []
+            try:
+                raw = await asyncio.to_thread(pinecone_client.fetch_vectors, ids)
+                results = []
+                for item in raw:
+                    results.append({
+                        "id": item.get("id", ""),
+                        "metadata": item.get("metadata", {}),
+                        "score": 0.0,  # placeholder, overwritten by caller
+                    })
+                return results
+            except Exception:
+                logger.debug("Content fetcher failed for %d IDs", len(ids), exc_info=True)
+                return []
+
+        return fetch
 
     @staticmethod
     def _tag_routing_mode(results: List[Dict[str, Any]], mode: RoutingMode) -> None:
@@ -893,6 +1005,312 @@ class MemoryService:
             metadata=metadata,
             embedding=embedding,
         )
+
+        # PLAN-0759 Phase 2 / Sprint 6: write-time similarity linking.
+        # Flag-guarded hook. When ASSOC_SIMILARITY_WRITE_ENABLED is False
+        # (the default), this block is exactly one attribute read and a
+        # branch-not-taken — no imports, no allocations, zero cost. When
+        # True, we lazily construct a SimilarityLinker once and cache it
+        # on self._similarity_linker for the service lifetime, then
+        # fire-and-forget an enqueue_link call. enqueue_link is async
+        # only in signature: internally it schedules an asyncio.create_task
+        # and returns, so the ``await`` here does not block on any Pinecone
+        # or Neo4j I/O. All failures inside the background task are
+        # self-contained (try/except in SimilarityLinker._link_one_safe)
+        # and can never bubble up to perform_upsert()'s return value.
+        if success and settings.ASSOC_SIMILARITY_WRITE_ENABLED:
+            try:
+                if self._similarity_linker is None:
+                    from app.services.associations.similarity_linker import (
+                        SimilarityLinker,
+                    )
+                    from app.services.associations.edge_service import (
+                        MemoryEdgeService,
+                    )
+                    self._similarity_linker = SimilarityLinker(
+                        pinecone_client=self.pinecone_client,
+                        edge_service=MemoryEdgeService(self.graph_client.driver),
+                        cross_project_enabled=settings.ASSOC_CROSS_PROJECT_ENABLED,
+                    )
+                await self._similarity_linker.enqueue_link(
+                    memory_id=item_id,
+                    embedding=embedding,
+                    metadata=metadata,
+                    project=metadata.get("project"),
+                )
+            except Exception as e:
+                # Defensive outer envelope. enqueue_link is designed not
+                # to raise, but if the lazy construction fails (e.g. a
+                # bad import or a missing driver), we log and move on —
+                # the memory is already durably persisted.
+                logger.warning(
+                    f"Similarity link dispatch failed for {item_id} "
+                    f"(non-fatal): {e}"
+                )
+
+        # PLAN-0759 Phase 3 / Sprint 9: write-time entity linking.
+        # Flag-guarded hook. When ASSOC_ENTITY_WRITE_ENABLED is False
+        # (the default), this block is exactly one attribute read and a
+        # branch-not-taken — no imports, no allocations, zero cost. When
+        # True, we lazily construct an EntityLinker once and cache it
+        # on self._entity_linker for the service lifetime, then fire-
+        # and-forget an enqueue_link call. enqueue_link resolves
+        # entities via Tier A (metadata["entities"]) or Tier B
+        # (heuristic extractor on content) and then schedules an
+        # asyncio.create_task internally — the ``await`` here does not
+        # block on any Neo4j I/O. All failures inside the background
+        # task are self-contained (try/except in
+        # EntityLinker._link_one_safe) and can never bubble up to
+        # perform_upsert()'s return value.
+        if success and settings.ASSOC_ENTITY_WRITE_ENABLED:
+            try:
+                if self._entity_linker is None:
+                    from app.services.associations.entity_linker import (
+                        EntityLinker,
+                    )
+                    self._entity_linker = EntityLinker(
+                        driver=self.graph_client.driver,
+                    )
+                await self._entity_linker.enqueue_link(
+                    memory_id=item_id,
+                    content=content,
+                    metadata=metadata,
+                    project=metadata.get("project"),
+                )
+            except Exception as e:
+                # Defensive outer envelope. enqueue_link is designed
+                # not to raise, but if the lazy construction fails
+                # (e.g. a bad import or a missing driver attribute),
+                # we log and move on — the memory is already durably
+                # persisted and the similarity hook has already had
+                # its turn.
+                logger.warning(
+                    f"Entity link dispatch failed for {item_id} "
+                    f"(non-fatal): {e}"
+                )
+
+        # PLAN-0759 Phase 4 / Sprint 11: write-time temporal linking.
+        # Flag-guarded hook. When ASSOC_TEMPORAL_WRITE_ENABLED is False
+        # (the default), this block is exactly one attribute read and a
+        # branch-not-taken — no imports, no allocations, zero cost. When
+        # True, we lazily construct a TemporalLinker once and cache it
+        # on self._temporal_linker for the service lifetime, then fire-
+        # and-forget an enqueue_link call. The linker itself acquires a
+        # per-session asyncio.Lock and a global semaphore before issuing
+        # the predecessor-lookup Cypher and the MEMORY_FOLLOWS MERGE via
+        # the injected MemoryEdgeService. All failures inside the
+        # background task are self-contained (try/except in
+        # TemporalLinker._link_one_safe) and can never bubble up to
+        # perform_upsert()'s return value. The lazy construction passes
+        # ``driver=self.graph_client.driver`` so the linker uses its
+        # built-in predecessor-lookup (no test-mode callable) — this is
+        # the production path; tests construct their own TemporalLinker
+        # with an explicit async callable.
+        if success and settings.ASSOC_TEMPORAL_WRITE_ENABLED:
+            try:
+                if self._temporal_linker is None:
+                    from app.services.associations.temporal_linker import (
+                        TemporalLinker,
+                    )
+                    from app.services.associations.edge_service import (
+                        MemoryEdgeService,
+                    )
+                    self._temporal_linker = TemporalLinker(
+                        edge_service=MemoryEdgeService(
+                            self.graph_client.driver
+                        ),
+                        driver=self.graph_client.driver,
+                    )
+                await self._temporal_linker.enqueue_link(
+                    memory_id=item_id,
+                    session_id=metadata.get("session_id"),
+                    thread_id=metadata.get("thread_id"),
+                    event_seq=metadata.get("event_seq"),
+                    project=metadata.get("project"),
+                )
+            except Exception as e:
+                # Defensive outer envelope. enqueue_link is designed
+                # not to raise, but if the lazy construction fails
+                # (e.g. a bad import or a missing driver attribute),
+                # we log and move on — the memory is already durably
+                # persisted and the similarity + entity hooks have
+                # already had their turn.
+                logger.warning(
+                    f"Temporal link dispatch failed for {item_id} "
+                    f"(non-fatal): {e}"
+                )
+
+        # PLAN-0759 Phase 5a: write-time supersession edges.
+        # Flag-guarded hook. When ASSOC_PROVENANCE_WRITE_ENABLED is False
+        # (the default), this block is exactly one attribute read and a
+        # branch-not-taken — no imports, no allocations, zero cost. When
+        # True AND the conflict detector found conflicting memories
+        # (decision-category only — enforced upstream at conflict detection),
+        # we lazily construct a MemoryEdgeService
+        # once and cache it on self._provenance_edge_service for the
+        # service lifetime, then call on_memory_supersede for each
+        # conflict. All failures are self-contained (try/except) and can
+        # never bubble up to perform_upsert()'s return value.
+        if success and settings.ASSOC_PROVENANCE_WRITE_ENABLED and conflict_info:
+            try:
+                if self._provenance_edge_service is None:
+                    from app.services.associations.edge_service import (
+                        MemoryEdgeService,
+                    )
+                    self._provenance_edge_service = MemoryEdgeService(
+                        self.graph_client.driver
+                    )
+
+                # Per-conflict loop with individual error handling
+                if self._provenance_edge_service is not None:
+                    for conflict in conflict_info:
+                        conflict_id = None
+                        try:
+                            conflict_id = conflict.get("id")
+                            if not conflict_id or conflict_id == item_id:
+                                continue
+                            similarity = conflict.get("similarity")
+                            reason = (
+                                f"conflict_detection: similarity={similarity:.3f}"
+                                if similarity is not None
+                                else "conflict_detection"
+                            )
+                            run_id = metadata.get("session_id", "supersession_hook") if metadata else "supersession_hook"
+                            await self._provenance_edge_service.on_memory_supersede(
+                                new_id=item_id,
+                                old_id=conflict_id,
+                                reason=reason,
+                                run_id=run_id,
+                            )
+                        except Exception as e:
+                            logger.warning(
+                                f"Supersession edge {item_id}->{conflict_id} failed (non-fatal): {e}"
+                            )
+            except Exception as e:
+                logger.warning(
+                    f"Supersession edge dispatch failed for {item_id} (non-fatal): {e}"
+                )
+
+        # PLAN-0759 Phase 7a: write-time co-occurrence linking.
+        # Flag-guarded hook. When ASSOC_COOCCURRENCE_WRITE_ENABLED is False
+        # (the default), this block is exactly one attribute read and a
+        # branch-not-taken — no imports, no allocations, zero cost. When
+        # True, we lazily construct a CooccurrenceLinker once and cache it
+        # on self._cooccurrence_linker for the service lifetime, then
+        # fire-and-forget an enqueue_link call. The linker uses the
+        # existing EntityLinker's read-only lookups to discover co-occurring
+        # memory pairs and writes CO_OCCURS edges via MemoryEdgeService.
+        # All failures inside the background task are self-contained
+        # (try/except in CooccurrenceLinker._link_one_safe) and can never
+        # bubble up to perform_upsert()'s return value.
+        if success and settings.ASSOC_COOCCURRENCE_WRITE_ENABLED:
+            try:
+                if self._cooccurrence_linker is None:
+                    from app.services.associations.cooccurrence_linker import (
+                        CooccurrenceLinker,
+                    )
+                    from app.services.associations.edge_service import (
+                        MemoryEdgeService,
+                    )
+                    from app.services.associations.entity_linker import (
+                        EntityLinker,
+                    )
+                    # Reuse existing entity linker if already constructed,
+                    # otherwise create a dedicated one for read-only lookups.
+                    if self._entity_linker is None:
+                        self._entity_linker = EntityLinker(
+                            driver=self.graph_client.driver,
+                        )
+                    self._cooccurrence_linker = CooccurrenceLinker(
+                        edge_service=MemoryEdgeService(
+                            self.graph_client.driver
+                        ),
+                        entity_linker=self._entity_linker,
+                    )
+                await self._cooccurrence_linker.enqueue_link(
+                    memory_id=item_id,
+                    project=metadata.get("project"),
+                )
+            except Exception as e:
+                # Defensive outer envelope. enqueue_link is designed
+                # not to raise, but if the lazy construction fails
+                # (e.g. a bad import or a missing driver attribute),
+                # we log and move on — the memory is already durably
+                # persisted and the similarity + entity + temporal +
+                # provenance hooks have already had their turn.
+                logger.warning(
+                    "Co-occurrence link dispatch failed for %s (non-fatal): %s",
+                    item_id,
+                    e,
+                )
+
+        # PLAN-0759 Phase 7b: write-time task-heuristic linking.
+        # Flag-guarded hook. When ASSOC_TASK_HEURISTIC_WRITE_ENABLED is
+        # False (the default), this block is exactly one attribute read
+        # and a branch-not-taken — no imports, no allocations, zero cost.
+        # When True AND the memory is a bug_fix with a fixes_task_id, we
+        # lazily construct a TaskHeuristicLinker once and cache it on
+        # self._task_heuristic_linker for the service lifetime, then
+        # fire-and-forget an enqueue_link call. The linker fetches the
+        # target memory's metadata via PineconeClient.fetch_vectors and
+        # creates a CAUSED_BY edge if the target is a task_failed memory
+        # in the same project within 30 days. All failures inside the
+        # background task are self-contained (try/except in
+        # TaskHeuristicLinker._link_one_safe) and can never bubble up to
+        # perform_upsert()'s return value.
+        if success and settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED:
+            try:
+                if self._task_heuristic_linker is None:
+                    from app.services.associations.task_heuristic_linker import (
+                        TaskHeuristicLinker,
+                    )
+                    from app.services.associations.edge_service import (
+                        MemoryEdgeService,
+                    )
+
+                    pinecone_client = self.pinecone_client
+
+                    async def _fetch_memory_meta(mid: str) -> dict | None:
+                        """Fetch memory metadata by ID via Pinecone."""
+                        try:
+                            raw = await asyncio.to_thread(
+                                pinecone_client.fetch_vectors, [mid]
+                            )
+                            if raw:
+                                return raw[0].get("metadata", {})
+                            return None
+                        except Exception:
+                            logger.debug(
+                                "Task heuristic fetch failed for %s",
+                                mid,
+                                exc_info=True,
+                            )
+                            return None
+
+                    self._task_heuristic_linker = TaskHeuristicLinker(
+                        edge_service=MemoryEdgeService(
+                            self.graph_client.driver
+                        ),
+                        memory_fetcher=_fetch_memory_meta,
+                    )
+                await self._task_heuristic_linker.enqueue_link(
+                    memory_id=item_id,
+                    metadata=metadata,
+                    project=metadata.get("project"),
+                )
+            except Exception as e:
+                # Defensive outer envelope. enqueue_link is designed
+                # not to raise, but if the lazy construction fails
+                # (e.g. a bad import or a missing driver attribute),
+                # we log and move on — the memory is already durably
+                # persisted and the similarity + entity + temporal +
+                # provenance + co-occurrence hooks have already had
+                # their turn.
+                logger.warning(
+                    "Task heuristic link dispatch failed for %s (non-fatal): %s",
+                    item_id,
+                    e,
+                )
 
         # Phase 5: Auto-link event to session if session_id is provided
         if success and metadata.get("session_id"):

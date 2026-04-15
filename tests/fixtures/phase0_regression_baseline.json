@@ -1,0 +1,881 @@
+{
+  "graph_calls": [
+    {
+      "id": "fx-01-decision-novatrade",
+      "metadata": {
+        "category": "decision",
+        "event_time": "2026-03-25T12:00:00+00:00",
+        "memory_type": "decision",
+        "project": "novatrade",
+        "tags": [
+          "strategy",
+          "baseline",
+          "locked"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-02-debug-neo4j",
+      "metadata": {
+        "category": "debug",
+        "event_time": "2026-04-01T09:30:00+00:00",
+        "memory_type": "debug",
+        "project": "fusion-mcp",
+        "tags": [
+          "neo4j",
+          "docker",
+          "auth"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-03-pattern-test-isolation",
+      "metadata": {
+        "category": "pattern",
+        "event_time": "2026-04-10T15:45:00+00:00",
+        "memory_type": "pattern",
+        "project": "fusion-mcp",
+        "tags": [
+          "testing",
+          "neo4j",
+          "safety"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-04-context-adr-0759",
+      "metadata": {
+        "category": "context",
+        "event_time": "2026-04-13T08:15:00+00:00",
+        "memory_type": "context",
+        "project": "novacore",
+        "tags": [
+          "adr",
+          "associative-linking",
+          "plan-0759"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-05-research-llm-judge",
+      "metadata": {
+        "category": "research",
+        "event_time": "2026-04-12T11:20:00+00:00",
+        "memory_type": "research",
+        "project": "novacore",
+        "tags": [
+          "eval",
+          "llm-as-judge",
+          "plan-0759"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-06-scratch-heartbeat",
+      "metadata": {
+        "event_time": "2026-04-13T10:00:00+00:00",
+        "memory_type": "scratch",
+        "project": "novacore",
+        "tags": [
+          "observability",
+          "heartbeat"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-07-decision-rollback",
+      "metadata": {
+        "category": "decision",
+        "event_time": "2026-04-13T14:00:00+00:00",
+        "memory_type": "decision",
+        "project": "fusion-mcp",
+        "tags": [
+          "rollback",
+          "safety",
+          "plan-0759"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-08-pattern-monkeypatch-env",
+      "metadata": {
+        "category": "pattern",
+        "event_time": "2026-04-13T16:00:00+00:00",
+        "memory_type": "pattern",
+        "project": "fusion-mcp",
+        "tags": [
+          "testing",
+          "pydantic",
+          "hermetic"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-09-debug-chain",
+      "metadata": {
+        "category": "debug",
+        "event_time": "2026-04-13T17:30:00+00:00",
+        "memory_type": "debug",
+        "project": "fusion-mcp",
+        "tags": [
+          "rollback",
+          "memory-service"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "id": "fx-10-context-cross-project",
+      "metadata": {
+        "category": "context",
+        "event_time": "2026-04-13T18:00:00+00:00",
+        "memory_type": "context",
+        "project": "novacore",
+        "tags": [
+          "plan-0759",
+          "cross-project",
+          "scoping"
+        ]
+      },
+      "method": "upsert_graph_data"
+    },
+    {
+      "method": "query_graph",
+      "top_k": 5
+    },
+    {
+      "method": "query_graph",
+      "top_k": 5
+    },
+    {
+      "method": "query_graph",
+      "top_k": 5
+    },
+    {
+      "method": "query_graph",
+      "top_k": 5
+    },
+    {
+      "method": "query_graph",
+      "top_k": 5
+    }
+  ],
+  "pinecone_calls": [
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "filter": {
+        "memory_type": {
+          "$eq": "decision"
+        }
+      },
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 5
+    },
+    {
+      "id": "fx-01-decision-novatrade",
+      "metadata": {
+        "category": "decision",
+        "event_time": "2026-03-25T12:00:00+00:00",
+        "memory_type": "decision",
+        "project": "novatrade",
+        "tags": [
+          "strategy",
+          "baseline",
+          "locked"
+        ],
+        "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-02-debug-neo4j",
+      "metadata": {
+        "category": "debug",
+        "event_time": "2026-04-01T09:30:00+00:00",
+        "memory_type": "debug",
+        "project": "fusion-mcp",
+        "tags": [
+          "neo4j",
+          "docker",
+          "auth"
+        ],
+        "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-03-pattern-test-isolation",
+      "metadata": {
+        "category": "pattern",
+        "event_time": "2026-04-10T15:45:00+00:00",
+        "memory_type": "pattern",
+        "project": "fusion-mcp",
+        "tags": [
+          "testing",
+          "neo4j",
+          "safety"
+        ],
+        "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-04-context-adr-0759",
+      "metadata": {
+        "category": "context",
+        "event_time": "2026-04-13T08:15:00+00:00",
+        "memory_type": "context",
+        "project": "novacore",
+        "tags": [
+          "adr",
+          "associative-linking",
+          "plan-0759"
+        ],
+        "text": "Context: ADR-0759 locks associative-linking code to the Fusion MCP app/services/associations/ package, with :base as the node label and entity_id as the key property. MEMORY_FOLLOWS was renamed to avoid collision with the existing Session FOLLOWS edge."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-05-research-llm-judge",
+      "metadata": {
+        "category": "research",
+        "event_time": "2026-04-12T11:20:00+00:00",
+        "memory_type": "research",
+        "project": "novacore",
+        "tags": [
+          "eval",
+          "llm-as-judge",
+          "plan-0759"
+        ],
+        "text": "Research: for recall eval without hand-labels, LLM-as-judge pinned to a fixed model+temperature=0 is the standard lightweight baseline when no existing ground-truth chain (SUPERSEDES/COMPACTED_FROM) exists to provide pseudo-labels."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-06-scratch-heartbeat",
+      "metadata": {
+        "event_time": "2026-04-13T10:00:00+00:00",
+        "memory_type": "scratch",
+        "project": "novacore",
+        "tags": [
+          "observability",
+          "heartbeat"
+        ],
+        "text": "Scratch note: HEARTBEAT_MULTIAGENT.md should end with exactly one trailing newline; the normalize step runs after every heartbeat write."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "filter": {
+        "memory_type": {
+          "$eq": "decision"
+        }
+      },
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 5
+    },
+    {
+      "id": "fx-07-decision-rollback",
+      "metadata": {
+        "category": "decision",
+        "event_time": "2026-04-13T14:00:00+00:00",
+        "memory_type": "decision",
+        "project": "fusion-mcp",
+        "tags": [
+          "rollback",
+          "safety",
+          "plan-0759"
+        ],
+        "text": "Decision: PLAN-0759 rollback utility (scripts/assoc_rollback.py) must refuse wildcard run_ids ('*', '%', 'all', 'ALL') and empty/whitespace run_ids to protect production data."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-08-pattern-monkeypatch-env",
+      "metadata": {
+        "category": "pattern",
+        "event_time": "2026-04-13T16:00:00+00:00",
+        "memory_type": "pattern",
+        "project": "fusion-mcp",
+        "tags": [
+          "testing",
+          "pydantic",
+          "hermetic"
+        ],
+        "text": "Pattern: hermetic Pydantic settings tests must use monkeypatch.delenv on every flag (plus its lowercase alias) and pass _env_file=None; case_sensitive=False still reads os.environ, so _env_file=None alone is not sufficient."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-09-debug-chain",
+      "metadata": {
+        "category": "debug",
+        "event_time": "2026-04-13T17:30:00+00:00",
+        "memory_type": "debug",
+        "project": "fusion-mcp",
+        "tags": [
+          "rollback",
+          "memory-service"
+        ],
+        "text": "Debug chain: an upsert that succeeds in Pinecone but fails in Neo4j triggers a compensating Pinecone delete; an upsert that fails in Pinecone but succeeds in Neo4j triggers a compensating Neo4j delete. Both rollback paths log a warning but return False."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": false,
+      "method": "query_vector",
+      "top_k": 3
+    },
+    {
+      "id": "fx-10-context-cross-project",
+      "metadata": {
+        "category": "context",
+        "event_time": "2026-04-13T18:00:00+00:00",
+        "memory_type": "context",
+        "project": "novacore",
+        "tags": [
+          "plan-0759",
+          "cross-project",
+          "scoping"
+        ],
+        "text": "Context: PLAN-0759 defaults to single-project isolation — SimilarityLinker and EntityLinker will scope queries by the source memory's project, and cross-project linking is opt-in via ASSOC_CROSS_PROJECT_ENABLED=True."
+      },
+      "method": "upsert_vector"
+    },
+    {
+      "filter": null,
+      "include_values": true,
+      "method": "query_vector",
+      "top_k": 5
+    },
+    {
+      "filter": {
+        "memory_type": {
+          "$in": [
+            "pattern",
+            "workflow",
+            "best_practice",
+            "context"
+          ]
+        }
+      },
+      "include_values": true,
+      "method": "query_vector",
+      "top_k": 5
+    },
+    {
+      "filter": null,
+      "include_values": true,
+      "method": "query_vector",
+      "top_k": 5
+    },
+    {
+      "filter": {
+        "memory_type": {
+          "$in": [
+            "decision",
+            "plan",
+            "strategy"
+          ]
+        }
+      },
+      "include_values": true,
+      "method": "query_vector",
+      "top_k": 5
+    },
+    {
+      "filter": null,
+      "include_values": true,
+      "method": "query_vector",
+      "top_k": 5
+    }
+  ],
+  "query_trace": [
+    {
+      "query": "What is the NovaTrade strategy baseline?",
+      "results": [
+        {
+          "id": "fx-01-decision-novatrade",
+          "initial_rank_graph": 1,
+          "initial_rank_vector": 1,
+          "metadata": {
+            "category": "decision",
+            "event_time": "2026-03-25T12:00:00+00:00",
+            "memory_type": "decision",
+            "project": "novatrade",
+            "reranker_used": "rrf_only",
+            "routing_mode": "VECTOR",
+            "tags": [
+              "strategy",
+              "baseline",
+              "locked"
+            ],
+            "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+          },
+          "normalized_score": 0.95,
+          "raw_score": 0.9,
+          "rrf_score": 0.03278688524590164,
+          "source": "vector",
+          "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+        },
+        {
+          "id": "fx-02-debug-neo4j",
+          "initial_rank_graph": 2,
+          "initial_rank_vector": 2,
+          "metadata": {
+            "category": "debug",
+            "event_time": "2026-04-01T09:30:00+00:00",
+            "memory_type": "debug",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "VECTOR",
+            "tags": [
+              "neo4j",
+              "docker",
+              "auth"
+            ],
+            "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+          },
+          "normalized_score": 0.9,
+          "raw_score": 0.8,
+          "rrf_score": 0.03225806451612903,
+          "source": "vector",
+          "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+        },
+        {
+          "id": "fx-03-pattern-test-isolation",
+          "initial_rank_vector": 3,
+          "metadata": {
+            "category": "pattern",
+            "event_time": "2026-04-10T15:45:00+00:00",
+            "memory_type": "pattern",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "VECTOR",
+            "tags": [
+              "testing",
+              "neo4j",
+              "safety"
+            ],
+            "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+          },
+          "normalized_score": 0.85,
+          "raw_score": 0.7,
+          "rrf_score": 0.015873015873015872,
+          "source": "vector",
+          "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+        }
+      ]
+    },
+    {
+      "query": "How should integration tests isolate Neo4j writes?",
+      "results": [
+        {
+          "id": "fx-01-decision-novatrade",
+          "initial_rank_graph": 1,
+          "initial_rank_vector": 1,
+          "metadata": {
+            "category": "decision",
+            "event_time": "2026-03-25T12:00:00+00:00",
+            "memory_type": "decision",
+            "project": "novatrade",
+            "reranker_used": "rrf_only",
+            "routing_mode": "PATTERN",
+            "tags": [
+              "strategy",
+              "baseline",
+              "locked"
+            ],
+            "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+          },
+          "normalized_score": 0.95,
+          "raw_score": 0.9,
+          "rrf_score": 0.03278688524590164,
+          "source": "vector",
+          "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+        },
+        {
+          "id": "fx-02-debug-neo4j",
+          "initial_rank_graph": 2,
+          "initial_rank_vector": 2,
+          "metadata": {
+            "category": "debug",
+            "event_time": "2026-04-01T09:30:00+00:00",
+            "memory_type": "debug",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "PATTERN",
+            "tags": [
+              "neo4j",
+              "docker",
+              "auth"
+            ],
+            "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+          },
+          "normalized_score": 0.9,
+          "raw_score": 0.8,
+          "rrf_score": 0.03225806451612903,
+          "source": "vector",
+          "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+        },
+        {
+          "id": "fx-03-pattern-test-isolation",
+          "initial_rank_vector": 3,
+          "metadata": {
+            "category": "pattern",
+            "event_time": "2026-04-10T15:45:00+00:00",
+            "memory_type": "pattern",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "PATTERN",
+            "tags": [
+              "testing",
+              "neo4j",
+              "safety"
+            ],
+            "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+          },
+          "normalized_score": 0.85,
+          "raw_score": 0.7,
+          "rrf_score": 0.015873015873015872,
+          "source": "vector",
+          "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+        }
+      ]
+    },
+    {
+      "query": "What does ADR-0759 say about associative linking location?",
+      "results": [
+        {
+          "id": "fx-01-decision-novatrade",
+          "initial_rank_graph": 1,
+          "initial_rank_vector": 1,
+          "metadata": {
+            "category": "decision",
+            "event_time": "2026-03-25T12:00:00+00:00",
+            "memory_type": "decision",
+            "project": "novatrade",
+            "reranker_used": "rrf_only",
+            "routing_mode": "HYBRID",
+            "tags": [
+              "strategy",
+              "baseline",
+              "locked"
+            ],
+            "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+          },
+          "normalized_score": 0.95,
+          "raw_score": 0.9,
+          "rrf_score": 0.03278688524590164,
+          "source": "vector",
+          "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+        },
+        {
+          "id": "fx-02-debug-neo4j",
+          "initial_rank_graph": 2,
+          "initial_rank_vector": 2,
+          "metadata": {
+            "category": "debug",
+            "event_time": "2026-04-01T09:30:00+00:00",
+            "memory_type": "debug",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "HYBRID",
+            "tags": [
+              "neo4j",
+              "docker",
+              "auth"
+            ],
+            "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+          },
+          "normalized_score": 0.9,
+          "raw_score": 0.8,
+          "rrf_score": 0.03225806451612903,
+          "source": "vector",
+          "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+        },
+        {
+          "id": "fx-03-pattern-test-isolation",
+          "initial_rank_vector": 3,
+          "metadata": {
+            "category": "pattern",
+            "event_time": "2026-04-10T15:45:00+00:00",
+            "memory_type": "pattern",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "HYBRID",
+            "tags": [
+              "testing",
+              "neo4j",
+              "safety"
+            ],
+            "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+          },
+          "normalized_score": 0.85,
+          "raw_score": 0.7,
+          "rrf_score": 0.015873015873015872,
+          "source": "vector",
+          "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+        }
+      ]
+    },
+    {
+      "query": "What is the PLAN-0759 rollback safety policy?",
+      "results": [
+        {
+          "id": "fx-01-decision-novatrade",
+          "initial_rank_graph": 1,
+          "initial_rank_vector": 1,
+          "metadata": {
+            "category": "decision",
+            "event_time": "2026-03-25T12:00:00+00:00",
+            "memory_type": "decision",
+            "project": "novatrade",
+            "reranker_used": "rrf_only",
+            "routing_mode": "DECISION",
+            "tags": [
+              "strategy",
+              "baseline",
+              "locked"
+            ],
+            "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+          },
+          "normalized_score": 0.95,
+          "raw_score": 0.9,
+          "rrf_score": 0.03278688524590164,
+          "source": "vector",
+          "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+        },
+        {
+          "id": "fx-02-debug-neo4j",
+          "initial_rank_graph": 2,
+          "initial_rank_vector": 2,
+          "metadata": {
+            "category": "debug",
+            "event_time": "2026-04-01T09:30:00+00:00",
+            "memory_type": "debug",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "DECISION",
+            "tags": [
+              "neo4j",
+              "docker",
+              "auth"
+            ],
+            "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+          },
+          "normalized_score": 0.9,
+          "raw_score": 0.8,
+          "rrf_score": 0.03225806451612903,
+          "source": "vector",
+          "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+        },
+        {
+          "id": "fx-03-pattern-test-isolation",
+          "initial_rank_vector": 3,
+          "metadata": {
+            "category": "pattern",
+            "event_time": "2026-04-10T15:45:00+00:00",
+            "memory_type": "pattern",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "DECISION",
+            "tags": [
+              "testing",
+              "neo4j",
+              "safety"
+            ],
+            "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+          },
+          "normalized_score": 0.85,
+          "raw_score": 0.7,
+          "rrf_score": 0.015873015873015872,
+          "source": "vector",
+          "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+        }
+      ]
+    },
+    {
+      "query": "How does cross-project scoping work under PLAN-0759?",
+      "results": [
+        {
+          "id": "fx-01-decision-novatrade",
+          "initial_rank_graph": 1,
+          "initial_rank_vector": 1,
+          "metadata": {
+            "category": "decision",
+            "event_time": "2026-03-25T12:00:00+00:00",
+            "memory_type": "decision",
+            "project": "novatrade",
+            "reranker_used": "rrf_only",
+            "routing_mode": "HYBRID",
+            "tags": [
+              "strategy",
+              "baseline",
+              "locked"
+            ],
+            "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+          },
+          "normalized_score": 0.95,
+          "raw_score": 0.9,
+          "rrf_score": 0.03278688524590164,
+          "source": "vector",
+          "text": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS."
+        },
+        {
+          "id": "fx-02-debug-neo4j",
+          "initial_rank_graph": 2,
+          "initial_rank_vector": 2,
+          "metadata": {
+            "category": "debug",
+            "event_time": "2026-04-01T09:30:00+00:00",
+            "memory_type": "debug",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "HYBRID",
+            "tags": [
+              "neo4j",
+              "docker",
+              "auth"
+            ],
+            "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+          },
+          "normalized_score": 0.9,
+          "raw_score": 0.8,
+          "rrf_score": 0.03225806451612903,
+          "source": "vector",
+          "text": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable."
+        },
+        {
+          "id": "fx-03-pattern-test-isolation",
+          "initial_rank_vector": 3,
+          "metadata": {
+            "category": "pattern",
+            "event_time": "2026-04-10T15:45:00+00:00",
+            "memory_type": "pattern",
+            "project": "fusion-mcp",
+            "reranker_used": "rrf_only",
+            "routing_mode": "HYBRID",
+            "tags": [
+              "testing",
+              "neo4j",
+              "safety"
+            ],
+            "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+          },
+          "normalized_score": 0.85,
+          "raw_score": 0.7,
+          "rrf_score": 0.015873015873015872,
+          "source": "vector",
+          "text": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase."
+        }
+      ]
+    }
+  ],
+  "upsert_trace": [
+    {
+      "fixture_id": "fx-01-decision-novatrade",
+      "returned_id": "fx-01-decision-novatrade"
+    },
+    {
+      "fixture_id": "fx-02-debug-neo4j",
+      "returned_id": "fx-02-debug-neo4j"
+    },
+    {
+      "fixture_id": "fx-03-pattern-test-isolation",
+      "returned_id": "fx-03-pattern-test-isolation"
+    },
+    {
+      "fixture_id": "fx-04-context-adr-0759",
+      "returned_id": "fx-04-context-adr-0759"
+    },
+    {
+      "fixture_id": "fx-05-research-llm-judge",
+      "returned_id": "fx-05-research-llm-judge"
+    },
+    {
+      "fixture_id": "fx-06-scratch-heartbeat",
+      "returned_id": "fx-06-scratch-heartbeat"
+    },
+    {
+      "fixture_id": "fx-07-decision-rollback",
+      "returned_id": "fx-07-decision-rollback"
+    },
+    {
+      "fixture_id": "fx-08-pattern-monkeypatch-env",
+      "returned_id": "fx-08-pattern-monkeypatch-env"
+    },
+    {
+      "fixture_id": "fx-09-debug-chain",
+      "returned_id": "fx-09-debug-chain"
+    },
+    {
+      "fixture_id": "fx-10-context-cross-project",
+      "returned_id": "fx-10-context-cross-project"
+    }
+  ]
+}

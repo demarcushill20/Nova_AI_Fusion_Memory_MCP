@@ -19,6 +19,8 @@ for _name in ("nova-memory-mcp-server", "app.services"):
 
 from mcp.server.fastmcp import FastMCP, Context
 from app.services.memory_service import MemoryService
+from app.services.associations.associative_recall import INTENT_EDGE_FILTER, DIRECTED_EDGE_DIRECTION
+from app.services.associations.memory_edges import VALID_EDGE_TYPES
 
 logger = logging.getLogger("nova-memory-mcp-server")
 
@@ -70,6 +72,10 @@ mcp = FastMCP(
     # dependencies=["fastapi", "uvicorn", "neo4j", "openai", "pinecone", ...]
     # Alternatively, rely on requirements.txt being installed in the environment
 )
+
+# --- Module-level constants ---
+
+VALID_INTENTS = frozenset(INTENT_EDGE_FILTER.keys())
 
 # --- Internal Helpers ---
 
@@ -192,23 +198,43 @@ async def query_memory(
     tags: Optional[List[str]] = None,
     min_score: Optional[float] = None,
     run_id: Optional[str] = None,
+    expand_graph: bool = False,
+    intent: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Retrieves relevant memory items based on a query text.
     Uses vector search (Pinecone) and graph search (Neo4j), fuses results, and reranks.
     Supports optional retrieval controls and metadata filtering.
+
+    When expand_graph is True and ASSOC_GRAPH_RECALL_ENABLED is set, results are
+    expanded via associative graph traversal. The intent parameter controls which
+    edge types are prioritized during expansion (e.g. 'temporal_recall',
+    'decision_recall', 'entity_recall', 'general').
     """
     logger.info(
-        f"Tool 'query_memory' called with query='{query}', top_k_vector={top_k_vector}, "
-        f"top_k_final={top_k_final}, category={category}, tags={tags}, min_score={min_score}, run_id={run_id}"
+        "Tool 'query_memory' called with query=%s, top_k_vector=%s, "
+        "top_k_final=%s, category=%s, tags=%s, min_score=%s, "
+        "run_id=%s, expand_graph=%s, intent=%s",
+        query[:200], top_k_vector, top_k_final, category, tags,
+        min_score, run_id, expand_graph, intent,
     )
     try:
         memory_service = _require_memory_service(ctx)
+        if intent is not None and intent not in VALID_INTENTS:
+            return {"error": f"Invalid intent: {intent!r}. Valid values: {sorted(VALID_INTENTS)}"}
+        if isinstance(top_k_vector, bool) or isinstance(top_k_final, bool):
+            return {"error": "top_k_vector and top_k_final must be integers, not booleans"}
         if top_k_vector < 1 or top_k_final < 1:
             return {"error": "top_k_vector and top_k_final must be >= 1"}
+        top_k_vector = min(top_k_vector, 500)
+        top_k_final = min(top_k_final, 200)
 
         results = await memory_service.perform_query(
-            query_text=query, top_k_vector=top_k_vector, top_k_final=top_k_final
+            query_text=query,
+            top_k_vector=top_k_vector,
+            top_k_final=top_k_final,
+            expand_graph=expand_graph,
+            intent=intent,
         )
         filtered_results = _filter_query_results(
             results=results,
@@ -218,14 +244,15 @@ async def query_memory(
             run_id=run_id,
         )
         logger.info(
-            f"Query returned {len(results)} results before filtering, {len(filtered_results)} after filtering."
+            "Query returned %d results before filtering, %d after filtering.",
+            len(results), len(filtered_results),
         )
         # FastMCP automatically serializes the return value (dict, list, primitives) to JSON
         return {"results": filtered_results}
     except Exception as e:
-        logger.error(f"Error during query_memory: {e}", exc_info=True)
+        logger.error("Error during query_memory: %s", e, exc_info=True)
         # Return an error structure that MCP client can understand
-        return {"error": f"Failed to execute query: {str(e)}"}
+        return {"error": f"Failed to execute query: {type(e).__name__}"}
 
 
 @mcp.tool()
@@ -474,6 +501,533 @@ async def check_health(ctx: Context) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error during check_health: {e}", exc_info=True)
         return {"status": "error", "details": f"Health check failed: {str(e)}"}
+
+
+# --- Associative Linking Tools (Phase 8, PLAN-0759) ---
+# SLO: all read-only association tools target p99 < 500ms for typical graphs.
+# These tools are always available (no feature flag gate) because they are
+# read-only. The only exception is get_related_memories with expand via
+# AssociativeRecall, which is gated on ASSOC_GRAPH_RECALL_ENABLED.
+
+
+def _get_edge_service(memory_service: "MemoryService"):
+    """Lazily construct a MemoryEdgeService from the MemoryService's graph driver.
+
+    Returns a cached instance so repeated tool calls within the same
+    server lifetime reuse the same executor.
+    """
+    if not hasattr(memory_service, "_mcp_edge_service") or memory_service._mcp_edge_service is None:
+        from app.services.associations.edge_service import MemoryEdgeService
+
+        memory_service._mcp_edge_service = MemoryEdgeService(memory_service.graph_client.driver)
+    return memory_service._mcp_edge_service
+
+
+def _get_entity_linker(memory_service: "MemoryService"):
+    """Lazily construct an EntityLinker from the MemoryService's graph driver.
+
+    Returns a cached instance so repeated tool calls within the same
+    server lifetime reuse the same executor.
+    """
+    if not hasattr(memory_service, "_mcp_entity_linker") or memory_service._mcp_entity_linker is None:
+        from app.services.associations.entity_linker import EntityLinker
+
+        memory_service._mcp_entity_linker = EntityLinker(memory_service.graph_client.driver)
+    return memory_service._mcp_entity_linker
+
+
+@mcp.tool()
+async def get_related_memories(
+    ctx: Context,
+    memory_id: str,
+    edge_types: Optional[List[str]] = None,
+    max_hops: int = 2,
+    limit: int = 20,
+    intent: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Get memories related to a given memory via associative graph edges.
+    Traverses the memory graph up to max_hops hops from the seed memory.
+
+    SLO: p99 < 500ms for max_hops <= 2.
+
+    Args:
+        memory_id: The entity_id of the seed memory (required).
+        edge_types: Optional list of edge types to traverse (e.g. ['SIMILAR_TO', 'MENTIONS']).
+        max_hops: Maximum traversal depth (default 2, max 3).
+        limit: Maximum number of related memories to return (default 20, max 50).
+        intent: Recall intent for edge prioritization (e.g. 'temporal_recall', 'entity_recall', 'general').
+    """
+    logger.info(
+        "Tool 'get_related_memories' called: memory_id=%s, edge_types=%s, "
+        "max_hops=%s, limit=%s, intent=%s",
+        memory_id, edge_types, max_hops, limit, intent,
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+
+        # --- Input validation ---
+        if not isinstance(memory_id, str) or not memory_id.strip():
+            return {"error": "memory_id must be a non-empty string"}
+        memory_id = memory_id.strip()
+
+        if isinstance(max_hops, bool) or not isinstance(max_hops, int) or max_hops < 1:
+            max_hops = 1
+        if max_hops > 3:
+            max_hops = 3
+
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            limit = 1
+        if limit > 50:
+            limit = 50
+
+        if intent is not None and intent not in VALID_INTENTS:
+            return {"error": f"Invalid intent: {intent!r}. Valid values: {sorted(VALID_INTENTS)}"}
+
+        if edge_types is not None:
+            if not isinstance(edge_types, list) or not edge_types:
+                return {"error": "edge_types must be a non-empty list of strings"}
+            invalid = [et for et in edge_types if not isinstance(et, str) or et not in VALID_EDGE_TYPES]
+            if invalid:
+                return {"error": f"Invalid edge_types: {invalid!r}. Valid: {sorted(VALID_EDGE_TYPES)}"}
+
+        if edge_types is None and intent is not None:
+            edge_types = list(INTENT_EDGE_FILTER.get(intent, INTENT_EDGE_FILTER["general"]))
+
+        edge_service = _get_edge_service(memory_service)
+
+        # Multi-hop BFS: collect neighbors iteratively
+        visited: set = {memory_id}
+        related: List[Dict[str, Any]] = []
+        frontier = [memory_id]
+
+        for hop in range(1, max_hops + 1):
+            next_frontier: List[str] = []
+            for node_id in frontier:
+                active_types = edge_types
+                neighbors: list = []
+                if active_types:
+                    symmetric = [et for et in active_types if et not in DIRECTED_EDGE_DIRECTION]
+                    directed = [et for et in active_types if et in DIRECTED_EDGE_DIRECTION]
+                    if symmetric:
+                        neighbors.extend(await edge_service.get_neighbors(
+                            node_id=node_id, edge_types=symmetric,
+                            direction="both", limit=25,
+                        ))
+                    if directed:
+                        neighbors.extend(await edge_service.get_neighbors(
+                            node_id=node_id, edge_types=directed,
+                            direction="out", limit=25,
+                        ))
+                else:
+                    neighbors = await edge_service.get_neighbors(
+                        node_id=node_id, limit=50,
+                    )
+                for n in neighbors:
+                    nid = n["node_id"]
+                    if nid not in visited:
+                        visited.add(nid)
+                        related.append({
+                            "memory_id": nid,
+                            "edge_type": n["edge_type"],
+                            "weight": n["weight"],
+                            "hop_distance": hop,
+                            "metadata": {
+                                "created_at": n.get("created_at"),
+                                "last_seen_at": n.get("last_seen_at"),
+                            },
+                        })
+                        next_frontier.append(nid)
+            frontier = next_frontier[:20]
+            if not frontier or len(related) >= limit:
+                break
+
+        # Sort by relevance (weight desc, then nearest hop) before truncation
+        related.sort(key=lambda x: (-x.get("weight", 0), x["hop_distance"]))
+        related = related[:limit]
+
+        logger.info(
+            "get_related_memories returning %d related memories for %s",
+            len(related), memory_id,
+        )
+        return {"memory_id": memory_id, "related": related, "count": len(related)}
+
+    except Exception as e:
+        logger.error("Error during get_related_memories: %s", e, exc_info=True)
+        return {"error": f"Failed to get related memories: {type(e).__name__}"}
+
+
+@mcp.tool()
+async def get_entity_memories(
+    ctx: Context,
+    entity_name: str,
+    project: Optional[str] = None,
+    limit: int = 20,
+) -> Dict[str, Any]:
+    """
+    Get memories that mention a specific entity.
+    Uses the Entity graph to find all memories linked via MENTIONS edges.
+
+    SLO: p99 < 300ms for typical entity lookups.
+
+    Args:
+        entity_name: The entity name to search for (required). Will be canonicalized.
+        project: Optional project namespace to scope the search.
+        limit: Maximum number of memories to return (default 20, max 100).
+    """
+    logger.info(
+        "Tool 'get_entity_memories' called: entity_name=%s, project=%s, limit=%s",
+        entity_name, project, limit,
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+
+        # --- Input validation ---
+        if not isinstance(entity_name, str) or not entity_name.strip():
+            return {"error": "entity_name must be a non-empty string"}
+        entity_name = entity_name.strip()
+
+        if project is not None and (not isinstance(project, str) or not project.strip()):
+            return {"error": "project must be a non-empty string or null"}
+        if project is not None:
+            project = project.strip()
+
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            limit = 1
+        if limit > 100:
+            limit = 100
+
+        # EntityLinker requires a project; if not provided, return informative error
+        if project is None:
+            return {
+                "error": "project is required for entity lookups (entity nodes are scoped by project)"
+            }
+
+        entity_linker = _get_entity_linker(memory_service)
+        memories = await entity_linker.get_memories_for_entity(
+            project=project,
+            entity_name=entity_name,
+            limit=limit,
+        )
+
+        # Shape the response
+        result_list = []
+        for mem in memories:
+            result_list.append({
+                "memory_id": mem["memory_id"],
+                "created_at": mem.get("created_at"),
+                "last_seen_at": mem.get("last_seen_at"),
+            })
+
+        logger.info(
+            "get_entity_memories returning %d memories for entity=%s project=%s",
+            len(result_list), entity_name, project,
+        )
+        return {
+            "entity_name": entity_name,
+            "project": project,
+            "memories": result_list,
+            "count": len(result_list),
+        }
+
+    except Exception as e:
+        logger.error("Error during get_entity_memories: %s", e, exc_info=True)
+        return {"error": f"Failed to get entity memories: {type(e).__name__}"}
+
+
+@mcp.tool()
+async def get_memory_graph(
+    ctx: Context,
+    memory_id: str,
+    max_hops: int = 2,
+    edge_types: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    """
+    Get the subgraph around a memory node: nodes and edges within max_hops.
+    Returns a graph structure suitable for visualization or analysis.
+
+    SLO: p99 < 800ms for max_hops <= 2.
+    Response cap: 200 nodes, 400 edges.
+
+    Args:
+        memory_id: The entity_id of the center memory (required).
+        max_hops: Maximum traversal depth (default 2, max 3).
+        edge_types: Optional list of edge types to include.
+    """
+    logger.info(
+        "Tool 'get_memory_graph' called: memory_id=%s, max_hops=%s, edge_types=%s",
+        memory_id, max_hops, edge_types,
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+
+        # --- Input validation ---
+        if not isinstance(memory_id, str) or not memory_id.strip():
+            return {"error": "memory_id must be a non-empty string"}
+        memory_id = memory_id.strip()
+
+        if isinstance(max_hops, bool) or not isinstance(max_hops, int) or max_hops < 1:
+            max_hops = 1
+        if max_hops > 3:
+            max_hops = 3
+
+        if edge_types is not None:
+            if not isinstance(edge_types, list) or not edge_types:
+                return {"error": "edge_types must be a non-empty list of strings"}
+            invalid = [et for et in edge_types if not isinstance(et, str) or et not in VALID_EDGE_TYPES]
+            if invalid:
+                return {"error": f"Invalid edge_types: {invalid!r}. Valid: {sorted(VALID_EDGE_TYPES)}"}
+
+        MAX_NODES = 200
+        MAX_EDGES = 400
+
+        edge_service = _get_edge_service(memory_service)
+
+        # Build subgraph via iterative BFS
+        nodes: Dict[str, Dict[str, Any]] = {
+            memory_id: {"id": memory_id, "type": "memory", "hop": 0}
+        }
+        edges: List[Dict[str, Any]] = []
+        seen_edges: set = set()
+        frontier = [memory_id]
+
+        for hop in range(1, max_hops + 1):
+            if len(nodes) >= MAX_NODES:
+                break
+            next_frontier: List[str] = []
+            for node_id in frontier:
+                active_types = edge_types
+                neighbors: list = []
+                if active_types:
+                    symmetric = [et for et in active_types if et not in DIRECTED_EDGE_DIRECTION]
+                    directed = [et for et in active_types if et in DIRECTED_EDGE_DIRECTION]
+                    if symmetric:
+                        neighbors.extend(await edge_service.get_neighbors(
+                            node_id=node_id, edge_types=symmetric,
+                            direction="both", limit=25,
+                        ))
+                    if directed:
+                        neighbors.extend(await edge_service.get_neighbors(
+                            node_id=node_id, edge_types=directed,
+                            direction="out", limit=25,
+                        ))
+                else:
+                    neighbors = await edge_service.get_neighbors(
+                        node_id=node_id, limit=50,
+                    )
+                for n in neighbors:
+                    nid = n["node_id"]
+                    # Add edge (regardless of whether node was already seen)
+                    edge_key = (node_id, nid, n["edge_type"])
+                    if len(edges) < MAX_EDGES and edge_key not in seen_edges:
+                        seen_edges.add(edge_key)
+                        edges.append({
+                            "source": node_id,
+                            "target": nid,
+                            "type": n["edge_type"],
+                            "weight": n["weight"],
+                            "created_at": n.get("created_at"),
+                            "last_seen_at": n.get("last_seen_at"),
+                        })
+                    # Add node if new
+                    if nid not in nodes and len(nodes) < MAX_NODES:
+                        nodes[nid] = {"id": nid, "type": "memory", "hop": hop}
+                        next_frontier.append(nid)
+            frontier = next_frontier[:50]
+            if not frontier or len(nodes) >= MAX_NODES:
+                break
+
+        node_list = list(nodes.values())
+        logger.info(
+            "get_memory_graph returning %d nodes, %d edges for %s",
+            len(node_list), len(edges), memory_id,
+        )
+        return {
+            "memory_id": memory_id,
+            "nodes": node_list,
+            "edges": edges,
+            "node_count": len(node_list),
+            "edge_count": len(edges),
+            "truncated": len(node_list) >= MAX_NODES or len(edges) >= MAX_EDGES,
+        }
+
+    except Exception as e:
+        logger.error("Error during get_memory_graph: %s", e, exc_info=True)
+        return {"error": f"Failed to get memory graph: {type(e).__name__}"}
+
+
+@mcp.tool()
+async def get_provenance(
+    ctx: Context,
+    memory_id: str,
+    max_depth: int = 10,
+) -> Dict[str, Any]:
+    """
+    Get the provenance chain of a memory — traces SUPERSEDES, PROMOTED_FROM,
+    and COMPACTED_FROM edges to find original episodic sources.
+
+    SLO: p99 < 400ms for typical provenance chains (depth <= 10).
+    Response cap: 30 nodes in the provenance chain.
+
+    Args:
+        memory_id: The entity_id of the memory to trace (required).
+        max_depth: Maximum depth to traverse (default 10, clamped to [1, 10]).
+    """
+    logger.info(
+        "Tool 'get_provenance' called: memory_id=%s, max_depth=%s",
+        memory_id, max_depth,
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+
+        # --- Input validation ---
+        if not isinstance(memory_id, str) or not memory_id.strip():
+            return {"error": "memory_id must be a non-empty string"}
+        memory_id = memory_id.strip()
+
+        if isinstance(max_depth, bool) or not isinstance(max_depth, int) or max_depth < 1:
+            max_depth = 1
+        if max_depth > 10:
+            max_depth = 10
+
+        MAX_CHAIN_NODES = 30
+
+        edge_service = _get_edge_service(memory_service)
+        prov = await edge_service.get_provenance(
+            memory_id=memory_id,
+            max_depth=max_depth,
+        )
+
+        # Enforce response-size cap on provenance chain
+        full_chain = prov.get("provenance_chain", [])
+        chain = full_chain[:MAX_CHAIN_NODES]
+        result = {
+            "memory_id": prov["memory_id"],
+            "provenance_chain": chain,
+            "original_sources": prov.get("original_sources", [])[:MAX_CHAIN_NODES],
+            "depth": prov.get("depth", 0),
+            "depth_limited": prov.get("depth_limited", False),
+            "chain_count": len(chain),
+            "full_chain_count": len(full_chain),
+            "truncated": len(full_chain) > MAX_CHAIN_NODES,
+        }
+
+        logger.info(
+            "get_provenance returning chain of %d for %s (depth=%d)",
+            len(chain), memory_id, result["depth"],
+        )
+        return result
+
+    except Exception as e:
+        logger.error("Error during get_provenance: %s", e, exc_info=True)
+        return {"error": f"Failed to get provenance: {type(e).__name__}"}
+
+
+@mcp.tool()
+async def get_session_timeline(
+    ctx: Context,
+    session_id: str,
+    limit: int = 50,
+) -> Dict[str, Any]:
+    """
+    Get the ordered timeline for a session via INCLUDES edges.
+    Returns memories ordered by event_seq, showing the causal flow within a session.
+
+    SLO: p99 < 400ms for typical sessions (< 100 memories).
+    Response cap: 100 memories.
+
+    Args:
+        session_id: The session identifier (required).
+        limit: Maximum number of memories to return (default 50, max 100).
+    """
+    logger.info(
+        "Tool 'get_session_timeline' called: session_id=%s, limit=%s",
+        session_id, limit,
+    )
+    try:
+        memory_service = _require_memory_service(ctx)
+
+        # --- Input validation ---
+        if not isinstance(session_id, str) or not session_id.strip():
+            return {"error": "session_id must be a non-empty string"}
+        session_id = session_id.strip()
+
+        if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1:
+            limit = 1
+        if limit > 100:
+            limit = 100
+
+        # Query Neo4j for memories included in this session. Find all
+        # :base nodes linked via INCLUDES edges from the :Session node,
+        # and order by event_seq.
+        driver = memory_service.graph_client.driver
+        query = (
+            "MATCH (s:Session {entity_id: $session_id})-[:INCLUDES]->(m:base)\n"
+            "RETURN m.entity_id AS memory_id, "
+            "m.event_seq AS event_seq, "
+            "m.event_time AS created_at\n"
+            "ORDER BY m.event_seq ASC\n"
+            "LIMIT $limit"
+        )
+
+        memories: List[Dict[str, Any]] = []
+        db_name = getattr(memory_service.graph_client, "_database", "neo4j")
+        async with driver.session(database=db_name) as session:
+            result = await session.run(
+                query, {"session_id": session_id, "limit": limit}
+            )
+            async for record in result:
+                memories.append({
+                    "memory_id": record["memory_id"],
+                    "event_seq": record["event_seq"],
+                    "created_at": record["created_at"],
+                })
+            await result.consume()
+
+        logger.info(
+            "get_session_timeline returning %d memories for session=%s",
+            len(memories), session_id,
+        )
+        return {
+            "session_id": session_id,
+            "timeline": memories,
+            "count": len(memories),
+        }
+
+    except Exception as e:
+        logger.error("Error during get_session_timeline: %s", e, exc_info=True)
+        return {"error": f"Failed to get session timeline: {type(e).__name__}"}
+
+
+@mcp.tool()
+async def get_edge_stats(ctx: Context) -> Dict[str, Any]:
+    """
+    Get global edge statistics for the associative memory graph.
+    Returns aggregate counts and weight distributions for all edge types.
+
+    SLO: p99 < 1s (scans all edges; acceptable for an admin/observability tool).
+    """
+    logger.info("Tool 'get_edge_stats' called.")
+    try:
+        memory_service = _require_memory_service(ctx)
+        edge_service = _get_edge_service(memory_service)
+
+        stats = await edge_service.get_edge_stats()
+
+        # Compute a total edge count for convenience
+        total_edges = sum(v.get("count", 0) for v in stats.values())
+
+        logger.info("get_edge_stats returning stats for %d edge types, %d total edges",
+                     len(stats), total_edges)
+        return {
+            "edge_stats": stats,
+            "total_edges": total_edges,
+            "edge_type_count": len(stats),
+        }
+
+    except Exception as e:
+        logger.error("Error during get_edge_stats: %s", e, exc_info=True)
+        return {"error": f"Failed to get edge stats: {type(e).__name__}"}
 
 
 if __name__ == "__main__":

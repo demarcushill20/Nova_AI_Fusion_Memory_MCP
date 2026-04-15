@@ -1,0 +1,13 @@
+# Eval baseline snapshots live here (PLAN-0759 Phase 6 prep).
+#
+# Snapshot filenames should embed the judge model pin so drifts are
+# traceable to model version changes:
+#
+#   baseline_<yyyymmdd>_<model-id>.json
+#
+# Example:
+#
+#   baseline_20260501_claude-sonnet-4-6.json
+#
+# The scaffolding in tests/eval/associative_recall_eval.py does not write
+# to this directory in Sprint 3; that's Phase 6 work.

@@ -1,0 +1,384 @@
+"""Integration tests for ``MemoryEdgeService.get_provenance`` (Phase 5d).
+
+Tests the read-only provenance traversal API that walks SUPERSEDES,
+PROMOTED_FROM, and COMPACTED_FROM edges backward to find original
+episodic sources.
+
+Safety model: follows the same patterns as ``test_memory_edge_service.py``.
+All test nodes use ``ProvenanceTestNode`` as primary label with ``:base``
+as secondary label.  Teardown deletes by ``ProvenanceTestNode``.
+"""
+
+from __future__ import annotations
+
+import sys
+import uuid
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import AsyncIterator, Optional
+
+import pytest
+import pytest_asyncio
+
+# --- Make the ``app`` package importable without the full config stack.
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+# ---
+
+try:
+    from neo4j import AsyncDriver, AsyncGraphDatabase
+    from neo4j import exceptions as neo4j_exceptions
+except ImportError:  # pragma: no cover
+    pytest.skip(
+        "neo4j driver not installed; cannot run provenance integration test",
+        allow_module_level=True,
+    )
+
+from app.services.associations.edge_service import MemoryEdgeService
+from app.services.associations.memory_edges import MemoryEdge
+
+# --------------------------------------------------------------------------
+# Constants
+# --------------------------------------------------------------------------
+
+TEST_NEO4J_URI = "bolt://localhost:7687"
+TEST_DB = "neo4j"
+TEST_LABEL = "ProvenanceTestNode"
+
+
+def _now_iso() -> str:
+    return datetime.now(tz=timezone.utc).isoformat()
+
+
+async def _try_open_async_driver() -> Optional[AsyncDriver]:
+    try:
+        driver = AsyncGraphDatabase.driver(TEST_NEO4J_URI, auth=None)
+        await driver.verify_connectivity()
+        return driver
+    except (
+        neo4j_exceptions.ServiceUnavailable,
+        neo4j_exceptions.AuthError,
+        OSError,
+    ):
+        return None
+
+
+# --------------------------------------------------------------------------
+# Fixtures
+# --------------------------------------------------------------------------
+
+
+@pytest_asyncio.fixture(scope="module", loop_scope="module")
+async def neo4j_async_driver() -> AsyncIterator[AsyncDriver]:
+    driver = await _try_open_async_driver()
+    if driver is None:
+        pytest.skip(
+            f"Neo4j not reachable at {TEST_NEO4J_URI}; skipping provenance tests."
+        )
+    try:
+        yield driver
+    finally:
+        await driver.close()
+
+
+@pytest_asyncio.fixture(loop_scope="module")
+async def edge_service(
+    neo4j_async_driver: AsyncDriver,
+) -> AsyncIterator[MemoryEdgeService]:
+    yield MemoryEdgeService(driver=neo4j_async_driver, database=TEST_DB)
+
+
+@pytest.fixture
+def run_id() -> str:
+    return f"prov-test-{uuid.uuid4().hex[:8]}"
+
+
+# --------------------------------------------------------------------------
+# Node helpers
+# --------------------------------------------------------------------------
+
+
+async def _create_test_nodes(
+    driver: AsyncDriver, entity_ids: list[str], run_tag: str
+) -> None:
+    async with driver.session(database=TEST_DB) as session:
+        await (
+            await session.run(
+                f"UNWIND $ids AS eid "
+                f"CREATE (n:{TEST_LABEL}:base {{entity_id: eid, test_run: $tag}})",
+                {"ids": entity_ids, "tag": run_tag},
+            )
+        ).consume()
+
+
+async def _teardown_test_nodes(driver: AsyncDriver) -> None:
+    async with driver.session(database=TEST_DB) as session:
+        await (
+            await session.run(f"MATCH (n:{TEST_LABEL}) DETACH DELETE n")
+        ).consume()
+
+
+def _make_edge(
+    source_id: str,
+    target_id: str,
+    edge_type: str,
+    run_tag: str,
+    weight: float = 1.0,
+) -> MemoryEdge:
+    ts = _now_iso()
+    return MemoryEdge(
+        source_id=source_id,
+        target_id=target_id,
+        edge_type=edge_type,
+        weight=weight,
+        created_at=ts,
+        last_seen_at=ts,
+        created_by="provenance_test",
+        run_id=run_tag,
+    )
+
+
+# --------------------------------------------------------------------------
+# Tests
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_single_supersession(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """A supersedes B  =>  provenance of A = [B], original_sources = [B]."""
+    a = f"prov-sup-a-{run_id}"
+    b = f"prov-sup-b-{run_id}"
+    try:
+        await _create_test_nodes(neo4j_async_driver, [a, b], run_id)
+        await edge_service.create_edge(_make_edge(a, b, "SUPERSEDES", run_id))
+
+        result = await edge_service.get_provenance(a)
+
+        assert result["memory_id"] == a
+        assert len(result["provenance_chain"]) == 1
+        assert result["provenance_chain"][0]["memory_id"] == b
+        assert result["provenance_chain"][0]["edge_type"] == "SUPERSEDES"
+        assert result["provenance_chain"][0]["depth"] == 1
+        assert result["original_sources"] == [b]
+        assert result["depth"] == 1
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_chain(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """A supersedes B, B promoted from C => chain = [B, C], sources = [C]."""
+    a = f"prov-chain-a-{run_id}"
+    b = f"prov-chain-b-{run_id}"
+    c = f"prov-chain-c-{run_id}"
+    try:
+        await _create_test_nodes(neo4j_async_driver, [a, b, c], run_id)
+        await edge_service.create_edge(_make_edge(a, b, "SUPERSEDES", run_id))
+        await edge_service.create_edge(
+            _make_edge(b, c, "PROMOTED_FROM", run_id)
+        )
+
+        result = await edge_service.get_provenance(a)
+
+        assert result["memory_id"] == a
+        chain_ids = [hop["memory_id"] for hop in result["provenance_chain"]]
+        assert b in chain_ids
+        assert c in chain_ids
+        assert result["original_sources"] == [c]
+        assert result["depth"] == 2
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_compaction_fan_out(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """Summary compacted from [S1, S2, S3] => 3 original sources."""
+    summary = f"prov-compact-sum-{run_id}"
+    s1 = f"prov-compact-s1-{run_id}"
+    s2 = f"prov-compact-s2-{run_id}"
+    s3 = f"prov-compact-s3-{run_id}"
+    try:
+        await _create_test_nodes(
+            neo4j_async_driver, [summary, s1, s2, s3], run_id
+        )
+        for src in [s1, s2, s3]:
+            await edge_service.create_edge(
+                _make_edge(summary, src, "COMPACTED_FROM", run_id)
+            )
+
+        result = await edge_service.get_provenance(summary)
+
+        assert result["memory_id"] == summary
+        chain_ids = {hop["memory_id"] for hop in result["provenance_chain"]}
+        assert chain_ids == {s1, s2, s3}
+        assert sorted(result["original_sources"]) == sorted([s1, s2, s3])
+        assert result["depth"] == 1
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_no_edges(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """Memory with no provenance edges => empty chain."""
+    lone = f"prov-lone-{run_id}"
+    try:
+        await _create_test_nodes(neo4j_async_driver, [lone], run_id)
+
+        result = await edge_service.get_provenance(lone)
+
+        assert result["memory_id"] == lone
+        assert result["provenance_chain"] == []
+        assert result["original_sources"] == []
+        assert result["depth"] == 0
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_max_depth(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """Chain A->B->C->D->E with max_depth=2 => only B,C discovered."""
+    nodes = [f"prov-depth-{i}-{run_id}" for i in range(5)]
+    try:
+        await _create_test_nodes(neo4j_async_driver, nodes, run_id)
+        for i in range(4):
+            await edge_service.create_edge(
+                _make_edge(nodes[i], nodes[i + 1], "SUPERSEDES", run_id)
+            )
+
+        result = await edge_service.get_provenance(nodes[0], max_depth=2)
+
+        chain_ids = {hop["memory_id"] for hop in result["provenance_chain"]}
+        # Only nodes[1] and nodes[2] are reachable within 2 hops
+        assert nodes[1] in chain_ids
+        assert nodes[2] in chain_ids
+        assert nodes[3] not in chain_ids
+        assert nodes[4] not in chain_ids
+        assert result["depth"] == 2
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_cycle_safety(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """Circular provenance (A->B->C->A) completes without infinite loop."""
+    a = f"prov-cycle-a-{run_id}"
+    b = f"prov-cycle-b-{run_id}"
+    c = f"prov-cycle-c-{run_id}"
+    try:
+        await _create_test_nodes(neo4j_async_driver, [a, b, c], run_id)
+        await edge_service.create_edge(_make_edge(a, b, "SUPERSEDES", run_id))
+        await edge_service.create_edge(_make_edge(b, c, "SUPERSEDES", run_id))
+        await edge_service.create_edge(
+            _make_edge(c, a, "SUPERSEDES", run_id)
+        )
+
+        # Should complete without hanging or raising
+        result = await edge_service.get_provenance(a)
+
+        assert result["memory_id"] == a
+        # The chain should contain b and c (Neo4j variable-length paths
+        # do not revisit nodes within a single path).
+        chain_ids = {hop["memory_id"] for hop in result["provenance_chain"]}
+        assert b in chain_ids
+        assert c in chain_ids
+        # Neo4j prevents relationship revisits, not node revisits, so
+        # the full cycle A->B->C->A is traversed.  Every node has an
+        # outgoing provenance edge, so no node is a leaf.
+        assert result["original_sources"] == []
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_nonexistent_memory(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+) -> None:
+    """Non-existent memory_id returns empty result, no error."""
+    fake_id = f"prov-ghost-{uuid.uuid4().hex[:8]}"
+
+    result = await edge_service.get_provenance(fake_id)
+
+    assert result["memory_id"] == fake_id
+    assert result["provenance_chain"] == []
+    assert result["original_sources"] == []
+    assert result["depth"] == 0
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_diamond_fan_in(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """Diamond: A->B->D, A->C->D => D is the single original source."""
+    a = f"prov-diamond-a-{run_id}"
+    b = f"prov-diamond-b-{run_id}"
+    c = f"prov-diamond-c-{run_id}"
+    d = f"prov-diamond-d-{run_id}"
+    try:
+        await _create_test_nodes(neo4j_async_driver, [a, b, c, d], run_id)
+        await edge_service.create_edge(_make_edge(a, b, "SUPERSEDES", run_id))
+        await edge_service.create_edge(_make_edge(a, c, "SUPERSEDES", run_id))
+        await edge_service.create_edge(_make_edge(b, d, "SUPERSEDES", run_id))
+        await edge_service.create_edge(_make_edge(c, d, "SUPERSEDES", run_id))
+
+        result = await edge_service.get_provenance(a)
+
+        chain_ids = {hop["memory_id"] for hop in result["provenance_chain"]}
+        assert chain_ids == {b, c, d}
+        assert result["original_sources"] == [d]
+        assert result["depth"] == 2
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)
+
+
+@pytest.mark.asyncio(loop_scope="module")
+async def test_get_provenance_depth_limited_indicator(
+    edge_service: MemoryEdgeService,
+    neo4j_async_driver: AsyncDriver,
+    run_id: str,
+) -> None:
+    """Chain A->B->C->D with max_depth=2 => depth_limited is True."""
+    nodes = [f"prov-dlim-{i}-{run_id}" for i in range(4)]
+    try:
+        await _create_test_nodes(neo4j_async_driver, nodes, run_id)
+        for i in range(3):
+            await edge_service.create_edge(
+                _make_edge(nodes[i], nodes[i + 1], "SUPERSEDES", run_id)
+            )
+
+        result = await edge_service.get_provenance(nodes[0], max_depth=2)
+
+        assert result["depth_limited"] is True
+        assert result["max_depth"] == 2
+
+        full_result = await edge_service.get_provenance(nodes[0])
+        assert full_result["depth_limited"] is False
+    finally:
+        await _teardown_test_nodes(neo4j_async_driver)

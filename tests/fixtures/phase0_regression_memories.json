@@ -1,0 +1,111 @@
+[
+  {
+    "fixture_id": "fx-01-decision-novatrade",
+    "content": "Decision: NovaTrade strategy baseline is Rob Hoffman IRB v5 — Relaxed Reliable Build (5min Champion). Locked on 2026-03-25 after reviewer ACCEPT-WITH-NITS.",
+    "metadata": {
+      "memory_type": "decision",
+      "category": "decision",
+      "project": "novatrade",
+      "tags": ["strategy", "baseline", "locked"],
+      "event_time": "2026-03-25T12:00:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-02-debug-neo4j",
+    "content": "Debug finding: bolt://localhost:7687 must use auth=None when NEO4J_AUTH is disabled in docker-compose, otherwise the driver hangs for ~30s before raising ServiceUnavailable.",
+    "metadata": {
+      "memory_type": "debug",
+      "category": "debug",
+      "project": "fusion-mcp",
+      "tags": ["neo4j", "docker", "auth"],
+      "event_time": "2026-04-01T09:30:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-03-pattern-test-isolation",
+    "content": "Pattern: integration tests that touch the live nova_neo4j_db container must use a dedicated ad-hoc label (e.g. :AssocRollbackTestNode) plus a finally-block teardown, and must assert count(:base) unchanged before/after the destructive phase.",
+    "metadata": {
+      "memory_type": "pattern",
+      "category": "pattern",
+      "project": "fusion-mcp",
+      "tags": ["testing", "neo4j", "safety"],
+      "event_time": "2026-04-10T15:45:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-04-context-adr-0759",
+    "content": "Context: ADR-0759 locks associative-linking code to the Fusion MCP app/services/associations/ package, with :base as the node label and entity_id as the key property. MEMORY_FOLLOWS was renamed to avoid collision with the existing Session FOLLOWS edge.",
+    "metadata": {
+      "memory_type": "context",
+      "category": "context",
+      "project": "novacore",
+      "tags": ["adr", "associative-linking", "plan-0759"],
+      "event_time": "2026-04-13T08:15:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-05-research-llm-judge",
+    "content": "Research: for recall eval without hand-labels, LLM-as-judge pinned to a fixed model+temperature=0 is the standard lightweight baseline when no existing ground-truth chain (SUPERSEDES/COMPACTED_FROM) exists to provide pseudo-labels.",
+    "metadata": {
+      "memory_type": "research",
+      "category": "research",
+      "project": "novacore",
+      "tags": ["eval", "llm-as-judge", "plan-0759"],
+      "event_time": "2026-04-12T11:20:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-06-scratch-heartbeat",
+    "content": "Scratch note: HEARTBEAT_MULTIAGENT.md should end with exactly one trailing newline; the normalize step runs after every heartbeat write.",
+    "metadata": {
+      "memory_type": "scratch",
+      "project": "novacore",
+      "tags": ["observability", "heartbeat"],
+      "event_time": "2026-04-13T10:00:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-07-decision-rollback",
+    "content": "Decision: PLAN-0759 rollback utility (scripts/assoc_rollback.py) must refuse wildcard run_ids ('*', '%', 'all', 'ALL') and empty/whitespace run_ids to protect production data.",
+    "metadata": {
+      "memory_type": "decision",
+      "category": "decision",
+      "project": "fusion-mcp",
+      "tags": ["rollback", "safety", "plan-0759"],
+      "event_time": "2026-04-13T14:00:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-08-pattern-monkeypatch-env",
+    "content": "Pattern: hermetic Pydantic settings tests must use monkeypatch.delenv on every flag (plus its lowercase alias) and pass _env_file=None; case_sensitive=False still reads os.environ, so _env_file=None alone is not sufficient.",
+    "metadata": {
+      "memory_type": "pattern",
+      "category": "pattern",
+      "project": "fusion-mcp",
+      "tags": ["testing", "pydantic", "hermetic"],
+      "event_time": "2026-04-13T16:00:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-09-debug-chain",
+    "content": "Debug chain: an upsert that succeeds in Pinecone but fails in Neo4j triggers a compensating Pinecone delete; an upsert that fails in Pinecone but succeeds in Neo4j triggers a compensating Neo4j delete. Both rollback paths log a warning but return False.",
+    "metadata": {
+      "memory_type": "debug",
+      "category": "debug",
+      "project": "fusion-mcp",
+      "tags": ["rollback", "memory-service"],
+      "event_time": "2026-04-13T17:30:00+00:00"
+    }
+  },
+  {
+    "fixture_id": "fx-10-context-cross-project",
+    "content": "Context: PLAN-0759 defaults to single-project isolation — SimilarityLinker and EntityLinker will scope queries by the source memory's project, and cross-project linking is opt-in via ASSOC_CROSS_PROJECT_ENABLED=True.",
+    "metadata": {
+      "memory_type": "context",
+      "category": "context",
+      "project": "novacore",
+      "tags": ["plan-0759", "cross-project", "scoping"],
+      "event_time": "2026-04-13T18:00:00+00:00"
+    }
+  }
+]

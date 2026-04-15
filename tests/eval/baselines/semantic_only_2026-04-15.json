@@ -1,0 +1,1414 @@
+[
+  {
+    "candidate_ids": [
+      "plan_2026-03-15_enhancement_v29",
+      "test-001-architecture",
+      "core-phase7-plan",
+      "plan_2026-03-12_enhancement_v7",
+      "7c8c34caa22f35f0fe585279614580cd",
+      "a12146776c242052eb3905a9a75723b2",
+      "9fa096224fc6bda103841de514747d6f",
+      "a5c50579a2327b4d438088213deaee01",
+      "eaeafbe8775b659bdf6e57391c999a2e",
+      "b8f5c97181bf8d9527b40e3d8434869d"
+    ],
+    "judge_scores": [
+      0.5,
+      1.0,
+      1.0,
+      0.3,
+      0.3,
+      0.7,
+      0.5,
+      0.7,
+      0.7,
+      0.7
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-decision-01",
+    "recall_at_k": 0.8,
+    "timestamp": "2026-04-15T11:30:54.895479+00:00"
+  },
+  {
+    "candidate_ids": [
+      "plan_2026-03-14_enhancement_v20",
+      "plan_2026-03-14_enhancement_v18",
+      "plan_2026-03-14_enhancement_v19",
+      "plan_2026-03-14_enhancement_v16",
+      "plan_2026-03-13_enhancement_v15",
+      "plan_2026-03-13_enhancement_v11",
+      "plan_2026-03-12_enhancement_v4",
+      "plan_2026-03-14_enhancement_v21",
+      "plan_2026-03-13_enhancement_v13",
+      "plan_2026-03-13_enhancement_v10"
+    ],
+    "judge_scores": [
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0,
+      1.0
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-decision-02",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:31:13.495276+00:00"
+  },
+  {
+    "candidate_ids": [
+      "dual-memory-p5-adr-bridge-complete",
+      "plan-dual-memory-integration",
+      "v32-status-update-20260319",
+      "015916fdfc5a8d32b280b96d4a46015e",
+      "plan-security-hardening-lethal-trifecta-2026-03-12",
+      "abdeea57d674cec26f3056c365706212",
+      "3f5950b0bc916d29f54488af8af6d359",
+      "f52b845a077a41699fbadbaad6aed774",
+      "openclaw_phase2_integration_analysis_2026",
+      "core-completed-work"
+    ],
+    "judge_scores": [
+      1.0,
+      0.5,
+      0.3,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.1,
+      0.0,
+      0.0
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-decision-03",
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-15T11:31:35.267434+00:00"
+  },
+  {
+    "candidate_ids": [
+      "76d0a1fb5adcea633fada4798ce68989",
+      "d87364e7a73ae28c7d5b94e11c9890f2",
+      "b9d1305ca5e6edcd0f8d39be2913ee0e",
+      "3f2974340e5c0fcefaa225dff2b0eca1",
+      "015916fdfc5a8d32b280b96d4a46015e",
+      "plan_2026-03-12_ceo_nova_telegram_status",
+      "16c5cb27bfdac49d3bde8dc4d86f87aa",
+      "39a009fd391018cb4f5c4fcbc7c6488e",
+      "3f0f0ea4386aab780ba1d2af15699edc",
+      "63bded4e24ba6effd562f560d081b69d"
+    ],
+    "judge_scores": [
+      1.0,
+      0.3,
+      0.5,
+      0.5,
+      0.3,
+      0.5,
+      0.3,
+      0.3,
+      0.3,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-decision-04",
+    "recall_at_k": 0.4,
+    "timestamp": "2026-04-15T11:31:56.719050+00:00"
+  },
+  {
+    "candidate_ids": [
+      "bdee22dd01c12bfd11051d04b1b190e2",
+      "novatrade-build-doctrine-2026-03-15",
+      "plan_2026-03-31_enhancement_v102",
+      "20314361a51928c85dbe2551c210c6b3",
+      "plan_2026-03-30_enhancement_v94",
+      "plan_2026-03-31_enhancement_v99",
+      "c255fa343131738849913022526ff534",
+      "plan_2026-03-16_enhancement_v31",
+      "novatrade-strategy-selection-decision",
+      "novatrade-autoresearch-critique-assessment"
+    ],
+    "judge_scores": [
+      0.3,
+      0.7,
+      0.5,
+      0.4,
+      0.5,
+      0.3,
+      0.5,
+      0.4,
+      0.9,
+      0.5
+    ],
+    "mrr": 0.5,
+    "query_id": "nc-decision-05",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:32:21.159251+00:00"
+  },
+  {
+    "candidate_ids": [
+      "plan_2026-03-31_enhancement_v99",
+      "plan_2026-03-30_enhancement_v97",
+      "plan_2026-03-29_enhancement_v89",
+      "plan_2026-03-27_enhancement_v78",
+      "plan_2026-03-26_enhancement_v94",
+      "plan_2026-03-25_enhancement_v89",
+      "plan_2026-03-23_enhancement_v71",
+      "plan_2026-03-23_enhancement_v69",
+      "plan_2026-03-22_enhancement_v64",
+      "plan_2026-03-18_enhancement_v46"
+    ],
+    "judge_scores": [
+      0.8,
+      0.85,
+      0.6,
+      0.4,
+      0.5,
+      0.55,
+      0.3,
+      0.25,
+      0.2,
+      0.15
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-decision-06",
+    "recall_at_k": 0.5,
+    "timestamp": "2026-04-15T11:32:47.283170+00:00"
+  },
+  {
+    "candidate_ids": [
+      "49d430f7b84460e68ba9d6fa6c330b3a",
+      "b089b188dafa6b67eb975d163140e06d",
+      "plan_2026-03-29_enhancement_v89",
+      "5ea65e06f131e5ce21cdba83405666ff",
+      "9c5478b3de748b7bab32cc090d5f9f45",
+      "a29425eab91215f3d909c82351642abf",
+      "28bc4e26dd53b2ea924150cf005d65de",
+      "plan_enhancement_v5_phase4_overview",
+      "57e8c262c330e1abc825512f29132e86",
+      "04d80d8e5d0c17db958a5f88c43a363e"
+    ],
+    "judge_scores": [
+      0.8,
+      0.1,
+      0.6,
+      1.0,
+      0.95,
+      0.5,
+      0.7,
+      0.2,
+      0.1,
+      0.2
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-arch-01",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:33:16.303375+00:00"
+  },
+  {
+    "candidate_ids": [
+      "research_2026-03-12_prompt_engineering_agent_architecture",
+      "research_2026-03-13_ai_agent_reliability_engineering_sre",
+      "0f651b349a93dd5b115f45573ac10966",
+      "0c66416580fded419995542e0dd56813",
+      "research_2026-03-12_durable_execution_crash_recovery",
+      "research-agent-security-hardening-2026-03",
+      "research_2026-03-12_agent_eval_frameworks",
+      "f991879810a9b2ddd784e59887654a51",
+      "autonomous_agent_landscape_2026",
+      "research_2026-03-14_llm_guardrails_runtime_safety"
+    ],
+    "judge_scores": [
+      1.0,
+      0.3,
+      0.3,
+      0.5,
+      0.3,
+      0.1,
+      0.3,
+      0.1,
+      0.7,
+      0.2
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-arch-02",
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-15T11:33:35.771076+00:00"
+  },
+  {
+    "candidate_ids": [
+      "research_mcp_ecosystem_scan_20260318",
+      "ec7f64325a07e8c6e6df31b6ce0ecfd6",
+      "463ef0d34cd186cbf2c3b5951ffb71ec",
+      "mcp-ecosystem-research-2026-03",
+      "2dc6b966469320f27f36138eb6b38adf",
+      "0b6356252f622c3db71389dd680dce1c",
+      "334f09c7487ec39f5337056805995322",
+      "3d6839e5ee9ea398f6923d0ff431c483",
+      "f36e61734f77043b5d00ba81a48e8ff1",
+      "mcp_ecosystem_survey_2026"
+    ],
+    "judge_scores": [
+      0.85,
+      0.95,
+      0.9,
+      0.9,
+      0.85,
+      0.95,
+      0.95,
+      0.8,
+      0.75,
+      0.9
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-arch-03",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:33:57.983085+00:00"
+  },
+  {
+    "candidate_ids": [
+      "plan-associative-linking-2026-04-13",
+      "d83d1dad90a2bd704fe7a96e5ce27516",
+      "plan-dual-memory-integration",
+      "e34f7320cf9f4b7de89e85b2574062ce",
+      "plan-memory-roadmap-completed-2026-03-15",
+      "647033f22d97f95e87aa6aab87f1c54c",
+      "1d404d109707b57f09c5f4faeecf9676",
+      "core-project-structure",
+      "778f9740817e2888cc9765087324a18e",
+      "bbdde64d5a666200f65bc784b024582d"
+    ],
+    "judge_scores": [
+      1.0,
+      0.1,
+      0.3,
+      0.0,
+      0.5,
+      0.3,
+      0.3,
+      0.1,
+      0.0,
+      0.0
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-arch-04",
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-15T11:34:19.015133+00:00"
+  },
+  {
+    "candidate_ids": [
+      "core-fusion-memory-architecture",
+      "research-rag-implementation-roadmap-2026",
+      "plan-dual-memory-integration",
+      "plan-memory-roadmap-completed-2026-03-15",
+      "4a68322c8fa9397702e9fab60a8ffe68",
+      "plan-consolidation-merges-2026-03-15",
+      "test-002-stack",
+      "research-rag-recommendations-2026",
+      "ee39119233e276c60dc72629fed10cce",
+      "core-completed-work"
+    ],
+    "judge_scores": [
+      0.5,
+      0.7,
+      0.6,
+      0.8,
+      0.3,
+      0.5,
+      0.2,
+      0.6,
+      0.2,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-arch-05",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:34:41.543184+00:00"
+  },
+  {
+    "candidate_ids": [
+      "49d430f7b84460e68ba9d6fa6c330b3a",
+      "1f395ab637081cde8b8f3429970cdeb2",
+      "abdeea57d674cec26f3056c365706212",
+      "dual-memory-p5-adr-bridge-complete",
+      "plan-security-hardening-lethal-trifecta-2026-03-12",
+      "b9d1305ca5e6edcd0f8d39be2913ee0e",
+      "core-fusion-memory-architecture",
+      "plan-dual-memory-integration",
+      "test-001-architecture",
+      "core-user-preferences"
+    ],
+    "judge_scores": [
+      0.05,
+      0.0,
+      0.85,
+      0.05,
+      0.0,
+      0.4,
+      0.5,
+      0.35,
+      0.2,
+      0.0
+    ],
+    "mrr": 0.3333333333333333,
+    "query_id": "nc-arch-06",
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-15T11:35:00.803167+00:00"
+  },
+  {
+    "candidate_ids": [
+      "6b4bae550a5a7ba3d5a2b05ba9572a90",
+      "plan_2026-03-31_enhancement_v105",
+      "6c6e89c0a7e2670e0320be35f6ce00dd",
+      "8fd5920371a7be8d0adb396b8c9db74a",
+      "b77388adbc2a0de37d04ad921753f4d8",
+      "0d80a67e64d041f8ad26476480d21ca3",
+      "e644ef4fcd7a2bf0e80a69f045930a5a",
+      "834a1818254a7ffbb2a9c65fe085a254",
+      "3795c88524f3f54a98fa4adbf669bee3",
+      "56e4347685348bd5a231ac3eaafcaaf0"
+    ],
+    "judge_scores": [
+      1.0,
+      0.1,
+      0.0,
+      0.3,
+      0.2,
+      0.0,
+      0.0,
+      0.3,
+      0.1,
+      0.1
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-debug-01",
+    "recall_at_k": 0.1,
+    "timestamp": "2026-04-15T11:35:23.283909+00:00"
+  },
+  {
+    "candidate_ids": [
+      "16d1c1ee4c165154bec2b9c08ea9b818",
+      "7179d95c9a3599bb6c58f4374f328f1f",
+      "5a8848921f51b2a04a706d133c88f1bd",
+      "b1af8d9dd758c63de3290fc8e782f0ea",
+      "641d9742d653dec2f964e6767414476e",
+      "plan_2026-04-01_enhancement_v107",
+      "f29078a2151202d0f723298562036938",
+      "f5a7858f1ba3063fa65bfc199c978726",
+      "897b3edb7134347cc01527b2bc964842",
+      "c3d1c779b52a4e915456769a1c062a9f"
+    ],
+    "judge_scores": [
+      1.0,
+      0.7,
+      0.9,
+      0.5,
+      0.3,
+      0.3,
+      0.3,
+      0.9,
+      0.1,
+      0.5
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-debug-02",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:35:45.139317+00:00"
+  },
+  {
+    "candidate_ids": [
+      "f29078a2151202d0f723298562036938",
+      "plan_2026-03-31_enhancement_v98",
+      "2872aac1418991dbf52938a874bc1c9b",
+      "7c21c8ce8be650cb126f416de6ae598c",
+      "f625a68ab6a4f04addad6578c696b85e",
+      "897b3edb7134347cc01527b2bc964842",
+      "f110ed1c806dcb37e988cb702dec2c75",
+      "4943154eceb8709cf4962b9ba2b688b1",
+      "research-metaapi-state-recovery-patterns-2026",
+      "3908d49f0e9a7d0efb524cb8769b9c88"
+    ],
+    "judge_scores": [
+      0.9,
+      0.85,
+      0.7,
+      0.8,
+      0.65,
+      0.65,
+      0.5,
+      0.5,
+      0.75,
+      0.85
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-debug-03",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:36:07.711389+00:00"
+  },
+  {
+    "candidate_ids": [
+      "6c4cabc6dcf9d0bcca84e509d06a51e5",
+      "research-rag-implementation-roadmap-2026",
+      "core-fusion-memory-architecture",
+      "system_health_audit_20260318",
+      "4a7e48f3bff14ca3c7ac85a7a5f9e6ca",
+      "research_2026-03-12_graphrag_knowledge_graph_agent_memory",
+      "research-rag-synthesis-2026-full",
+      "4d42a3b9d71e8bedd115eb5abb4ce7cf",
+      "memory-hygiene-2026-03-26",
+      "3a5883175bfb5e131b05172dd292476e"
+    ],
+    "judge_scores": [
+      0.3,
+      0.2,
+      0.5,
+      0.3,
+      0.2,
+      0.5,
+      0.3,
+      0.2,
+      0.3,
+      0.1
+    ],
+    "mrr": 0.3333333333333333,
+    "query_id": "nc-debug-04",
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-15T11:36:30.007113+00:00"
+  },
+  {
+    "candidate_ids": [
+      "research_2026-03-12_prompt_engineering_agent_architecture",
+      "research_2026-03-13_context_engineering",
+      "plan_2026-03-13_enhancement_v14",
+      "e34f7320cf9f4b7de89e85b2574062ce",
+      "research_2026-03-14_tool_use_optimization",
+      "research_2026-03-13_llm_as_judge_evaluation",
+      "research-rag-optimization-definitive-synthesis-20260314",
+      "research_2026-03-13_prompt_compression_context_distillation",
+      "28cdb8450421bbaf8f5cb53f9ceba441",
+      "a5c50579a2327b4d438088213deaee01"
+    ],
+    "judge_scores": [
+      1.0,
+      0.3,
+      0.1,
+      0.5,
+      0.1,
+      0.3,
+      0.1,
+      0.3,
+      0.1,
+      0.5
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-research-01",
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-15T11:36:50.883191+00:00"
+  },
+  {
+    "candidate_ids": [
+      "mcp-ecosystem-research-2026-03",
+      "4aca822b7c8548cfae17498fef1d801a",
+      "216f123378ac8daaa09c0237d9930b65",
+      "1f08ebf6391d683284eacb9110098d00",
+      "569974bd73706e8b5e046b134a1eb2ac",
+      "96ddaad626ed5698a2a3c189e58db6b5",
+      "90198981255ca70818d02c04fd6b95ae",
+      "research_mcp_ecosystem_2026_03",
+      "3d6839e5ee9ea398f6923d0ff431c483",
+      "mcp_ecosystem_survey_2026"
+    ],
+    "judge_scores": [
+      0.9,
+      1.0,
+      0.95,
+      0.95,
+      0.85,
+      0.9,
+      0.9,
+      0.85,
+      0.85,
+      0.85
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-research-02",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:37:14.863146+00:00"
+  },
+  {
+    "candidate_ids": [
+      "research_2026-03-12_prompt_engineering_agent_architecture",
+      "d87364e7a73ae28c7d5b94e11c9890f2",
+      "f763b5a9090f40ddf1b56eac23b61a31",
+      "research_0485_recommendations",
+      "research_agent_runtime_patterns_2026-03-26",
+      "research_2026-03-12_llm_cost_optimization_prompt_caching",
+      "f4e2871e384f4f7f991a109cead5d287",
+      "b9d1305ca5e6edcd0f8d39be2913ee0e",
+      "openclaw_phase2_integration_analysis_2026",
+      "skills_capability_gaps_2026"
+    ],
+    "judge_scores": [
+      0.85,
+      0.3,
+      0.5,
+      0.1,
+      0.4,
+      0.9,
+      0.1,
+      0.2,
+      0.3,
+      0.1
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-research-03",
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-15T11:37:40.467285+00:00"
+  },
+  {
+    "candidate_ids": [
+      "39251618e4b0595a7d8b59eb76ab2d96",
+      "826adf933ea1f94b2b51dfff3d133ff5",
+      "3c95318490ba6eacaa2e889baf6f27ec",
+      "4691875a4134c4842def02f3d7fc7c15",
+      "ebe06229ab2f7120c880377d0ede0203",
+      "719c675941409242e936176337213355",
+      "b089b188dafa6b67eb975d163140e06d",
+      "3b8f12ce59235d041ba2168fe16acd0a",
+      "f874c2d665d6753ca1ee90701fb9ec5d",
+      "124c31d4c3ab7dd685f5a51c3590c426"
+    ],
+    "judge_scores": [
+      0.9,
+      0.9,
+      0.9,
+      0.7,
+      1.0,
+      0.5,
+      0.8,
+      0.7,
+      0.6,
+      0.6
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-entity-01",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:38:03.271510+00:00"
+  },
+  {
+    "candidate_ids": [
+      "monitoring_observability_inspection_report_march_2026",
+      "6b4bae550a5a7ba3d5a2b05ba9572a90",
+      "d797c0b9900d94cb0000cc1f1f9959a7",
+      "plan_enhancement_v5_phase4_overview",
+      "a65bddcfe651924b9ef9a406f31c2220",
+      "a347e1548525afbba67e79b6ca271c5c",
+      "plan_2026-03-18_enhancement_v45",
+      "ef96f65365f55e903fbcc22db722ddda",
+      "agent_observability_tools_research_march_2026",
+      "agent_self_diagnostics_patterns_2026"
+    ],
+    "judge_scores": [
+      0.9,
+      0.5,
+      0.7,
+      0.7,
+      0.4,
+      0.3,
+      0.6,
+      0.5,
+      0.6,
+      0.5
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-entity-02",
+    "recall_at_k": 0.8,
+    "timestamp": "2026-04-15T11:38:29.171177+00:00"
+  },
+  {
+    "candidate_ids": [
+      "dual-memory-p5-adr-bridge-complete",
+      "plan-memory-roadmap-completed-2026-03-15",
+      "plan-dual-memory-integration",
+      "test-002-stack",
+      "dual-memory-phase6-complete-2026-03-19",
+      "core-fusion-memory-architecture",
+      "plan-p9a-memory-retrieval-enhancement-20260318",
+      "e90de3ab59b3cee2e46ef1bb87212d83",
+      "research-rag-recommendations-2026",
+      "2db5f4b1d6673cdce9b8d37c5efa3bb0"
+    ],
+    "judge_scores": [
+      0.1,
+      0.5,
+      0.4,
+      0.3,
+      0.1,
+      0.4,
+      0.8,
+      0.1,
+      0.5,
+      0.6
+    ],
+    "mrr": 0.5,
+    "query_id": "nc-entity-03",
+    "recall_at_k": 0.4,
+    "timestamp": "2026-04-15T11:38:53.815325+00:00"
+  },
+  {
+    "candidate_ids": [
+      "nova_core_enhancement_plan_2026",
+      "test-001-architecture",
+      "core-phase7-plan",
+      "core-skills-architecture",
+      "005b347afc0f10618dadd5a283f37a58",
+      "agent_design_patterns_2026_update",
+      "agent_self_diagnostics_patterns_2026",
+      "autonomous_agent_landscape_2026",
+      "skills_capability_gaps_2026",
+      "debug_worker_timeout_0403_0404"
+    ],
+    "judge_scores": [
+      0.1,
+      0.7,
+      0.8,
+      0.5,
+      0.3,
+      0.4,
+      0.3,
+      0.4,
+      0.3,
+      0.3
+    ],
+    "mrr": 0.5,
+    "query_id": "nc-entity-04",
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-15T11:39:14.815264+00:00"
+  },
+  {
+    "candidate_ids": [],
+    "judge_scores": [],
+    "mrr": 0.0,
+    "query_id": "nc-session-01",
+    "recall_at_k": 0.0,
+    "timestamp": "2026-04-15T11:39:14.859050+00:00"
+  },
+  {
+    "candidate_ids": [],
+    "judge_scores": [],
+    "mrr": 0.0,
+    "query_id": "nc-session-02",
+    "recall_at_k": 0.0,
+    "timestamp": "2026-04-15T11:39:14.902051+00:00"
+  },
+  {
+    "candidate_ids": [
+      "plan-associative-linking-2026-04-13",
+      "plan_phase6_complete_20260318",
+      "plan-memory-roadmap-completed-2026-03-15",
+      "plan_2026-03-18_enhancement_v32_update",
+      "plan_2026-03-13_enhancement_v12",
+      "58d7802d20cd0d37a69b1d36dfc78eb2",
+      "plan_2026-03-15_enhancement_v28",
+      "64523263e8ee7348b12a098b03dc5caa",
+      "0d46d878e7fdef7b603bfb5877569e7c",
+      "834a1818254a7ffbb2a9c65fe085a254"
+    ],
+    "judge_scores": [
+      0.7,
+      0.3,
+      0.5,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.2,
+      0.3,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-session-03",
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-15T11:39:35.603215+00:00"
+  },
+  {
+    "candidate_ids": [
+      "ebe06229ab2f7120c880377d0ede0203",
+      "3ce44e401821ba3ac8ea9f5a2cc40305",
+      "39251618e4b0595a7d8b59eb76ab2d96",
+      "3c95318490ba6eacaa2e889baf6f27ec",
+      "eb357c44357bc739a5e5b771a85794e5",
+      "b089b188dafa6b67eb975d163140e06d",
+      "826adf933ea1f94b2b51dfff3d133ff5",
+      "4691875a4134c4842def02f3d7fc7c15",
+      "124c31d4c3ab7dd685f5a51c3590c426",
+      "f874c2d665d6753ca1ee90701fb9ec5d"
+    ],
+    "judge_scores": [
+      1.0,
+      0.5,
+      0.7,
+      0.7,
+      0.3,
+      0.5,
+      0.5,
+      0.3,
+      0.3,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-decision-01",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:39:59.067257+00:00"
+  },
+  {
+    "candidate_ids": [
+      "c6386bd9750de5e082d348acc22119c4",
+      "5a8848921f51b2a04a706d133c88f1bd",
+      "ffa77ca71581b1be47674698a5b7e8ed",
+      "f625a68ab6a4f04addad6578c696b85e",
+      "2872aac1418991dbf52938a874bc1c9b",
+      "4943154eceb8709cf4962b9ba2b688b1",
+      "f110ed1c806dcb37e988cb702dec2c75",
+      "897b3edb7134347cc01527b2bc964842",
+      "214addcbac26ea8e3a2ff67d20b32628",
+      "bb6392ee6ede39be23f3e3a8b133d364"
+    ],
+    "judge_scores": [
+      0.95,
+      0.15,
+      1.0,
+      0.2,
+      0.15,
+      0.15,
+      0.15,
+      0.15,
+      0.4,
+      0.9
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-decision-02",
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-15T11:40:23.823092+00:00"
+  },
+  {
+    "candidate_ids": [
+      "6bf00ecf274ce80bb27b900ec9dc4ef6",
+      "bdee22dd01c12bfd11051d04b1b190e2",
+      "research_ftmo_compliance_checklist_2026-03-26",
+      "b20f5c2def40eb556f666489d92b9218",
+      "27b1ac3ce77d18ac4236c763bb2d26ce",
+      "research-novatrade-actionable-findings-2026-04",
+      "a5ae298b5d1847b25dcf1a1d214a68c7",
+      "785c40474fb42c1a5d30f6f76479c61c",
+      "research_novatrade_2026_march28_update",
+      "research_metaapi_ftmo_2026"
+    ],
+    "judge_scores": [
+      0.9,
+      0.7,
+      0.6,
+      0.3,
+      0.5,
+      0.5,
+      0.2,
+      0.1,
+      0.3,
+      0.2
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-decision-03",
+    "recall_at_k": 0.5,
+    "timestamp": "2026-04-15T11:40:48.747291+00:00"
+  },
+  {
+    "candidate_ids": [
+      "a1100da8879aac9981bf28f867c72620",
+      "05a5cfd1eb7591b7caf005ae485ca097",
+      "0cdce2fc21f12f825d1c5e845766cba0",
+      "57c333504688ac048d446381b12123b2",
+      "research-irb-parameter-sensitivity-regime-optimization-2026-04",
+      "plan_2026-04-01_enhancement_v106",
+      "8e2b5a8da9aa952ef7c4ff370c3eb6d0",
+      "124c74da182502a18f442f15acab1509",
+      "plan_2026-03-17_enhancement_v40",
+      "465aa684c453ad1638605cca47bdbca7"
+    ],
+    "judge_scores": [
+      1.0,
+      0.5,
+      0.7,
+      0.5,
+      0.7,
+      0.3,
+      0.5,
+      0.3,
+      0.3,
+      0.5
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-decision-04",
+    "recall_at_k": 0.7,
+    "timestamp": "2026-04-15T11:41:15.299226+00:00"
+  },
+  {
+    "candidate_ids": [
+      "5a4e5be6e177d014cf23ed5ce5a13ae8",
+      "8bfe4312b3a123d5cb5312e7384829a6",
+      "ec478c807538c290e0e5536e7ede087b",
+      "8b2d23fcc095ad58ed2789e9ea87b791",
+      "baed4cd967ce9c0fdac95fd0c14c8915",
+      "6a6741acf0734cddcb746ea28ab28a6f",
+      "research_metaapi_mt5_deployment_2026-03-26",
+      "research_novatrade_live_reliability_2026-03-19",
+      "87fa851839c1d6491bc332cd298df34f",
+      "research_metaapi_ftmo_2026"
+    ],
+    "judge_scores": [
+      0.7,
+      0.9,
+      0.7,
+      0.8,
+      0.5,
+      0.5,
+      0.9,
+      0.7,
+      0.6,
+      0.8
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-decision-05",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:41:40.227339+00:00"
+  },
+  {
+    "candidate_ids": [
+      "31dd7954e01698cbb5781a58c45718b2",
+      "7c8c34caa22f35f0fe585279614580cd",
+      "60902d54b98eb8189472a7badc140ebd",
+      "1f395ab637081cde8b8f3429970cdeb2",
+      "b930546f9ff0cef751286004bb498722",
+      "39c32ca6e368f464e387902dd8e036d2",
+      "3f5950b0bc916d29f54488af8af6d359",
+      "plan_2026-03-24_enhancement_v77",
+      "plan_2026-03-31_enhancement_v99",
+      "24de384a13ffa02e322232c4711561fe"
+    ],
+    "judge_scores": [
+      0.5,
+      0.3,
+      0.6,
+      0.8,
+      0.7,
+      0.3,
+      0.6,
+      0.5,
+      0.4,
+      0.5
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-arch-01",
+    "recall_at_k": 0.7,
+    "timestamp": "2026-04-15T11:42:02.671282+00:00"
+  },
+  {
+    "candidate_ids": [
+      "b1dcba158eb55ad071b94454c501d2db",
+      "525b0ca283ce2d13cbf8747d54a13ab2",
+      "adfd42d125a9be6d3be1cd02cf5e9834",
+      "9796767d18139847ec5c58208eefa896",
+      "f0f830cf5b1eabf2491e8f134d827619",
+      "ebd9220926d00ca0ffbc7edc2e898682",
+      "354a9f4a54d7f3b7d46d62b14a0a53ac",
+      "40337ce2e3cc51a7d4898550dc8f581d",
+      "9321d9d9eca646dd76a76add56f1799d",
+      "4ba7dc4b9a695b7bb9ef056b76a89886"
+    ],
+    "judge_scores": [
+      0.9,
+      1.0,
+      1.0,
+      0.9,
+      0.9,
+      1.0,
+      0.7,
+      0.7,
+      0.9,
+      0.7
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-arch-02",
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-15T11:42:24.983247+00:00"
+  },
+  {
+    "candidate_ids": [],
+    "judge_scores": [],
+    "mrr": 0.0,
+    "query_id": "nt-arch-03",
+    "recall_at_k": 0.0,
+    "timestamp": "2026-04-15T11:42:25.027643+00:00"
+  },
+  {
+    "candidate_ids": [
+      "2f9678ca1d7264408d2dc53b1cc74bb3",
+      "d43ff9bda92a5d727d5b795212f7f6b1",
+      "7179d95c9a3599bb6c58f4374f328f1f",
+      "bdee22dd01c12bfd11051d04b1b190e2",
+      "b878dccd03ac2ccdfa616f84dc073cec",
+      "9ab29b343b618e8fd2ba231c241ef308",
+      "5a8848921f51b2a04a706d133c88f1bd",
+      "5e970a105197fa28dece271bb3ef564d",
+      "research_novatrade_live_reliability_2026-03-19",
+      "93414359b40e2a0c2fb2f49dfb18f251"
+    ],
+    "judge_scores": [
+      0.7,
+      0.8,
+      0.5,
+      0.6,
+      0.7,
+      0.9,
+      0.5,
+      0.7,
+      0.6,
+      0.4
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-arch-04",
+    "recall_at_k": 0.9,
+    "timestamp": "2026-04-15T11:42:47.979095+00:00"
+  },
+  {
+    "candidate_ids": [
+      "37616e10dbed7f4cd8c0197969876f34",
+      "c581aaeb548a014b709f945b8013e1fa",
+      "1c7efa1ca7202716072f8a0135d3ca97",
+      "3b9d946f6dc54a40d54abca4dc35c54b",
+      "3bb17933f72b49fbd4732520155ae180",
+      "research-irb-parameter-sensitivity-regime-optimization-2026-04",
+      "22640b8e750ee0c990a7084c41bd4989",
+      "f836b3f6b617884d266a95500bc00ea6",
+      "9121deeaed2e6695e423001c832ec002",
+      "124c74da182502a18f442f15acab1509"
+    ],
+    "judge_scores": [
+      1.0,
+      0.5,
+      0.3,
+      0.7,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.1
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-debug-01",
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-15T11:43:11.983148+00:00"
+  },
+  {
+    "candidate_ids": [
+      "ffa77ca71581b1be47674698a5b7e8ed",
+      "c6386bd9750de5e082d348acc22119c4",
+      "2191304f91dd7dc01db309129d365c81",
+      "65bacfe480c8874c75bc976ec95157c3",
+      "5a8848921f51b2a04a706d133c88f1bd",
+      "16d1c1ee4c165154bec2b9c08ea9b818",
+      "8bfe4312b3a123d5cb5312e7384829a6",
+      "0761c14d8b3c42ef5d2cf3afe3569094",
+      "15cacb10fe0695e0415f1d14aea75776",
+      "cb189de0f52a0f99aea1580589b02b12"
+    ],
+    "judge_scores": [
+      0.95,
+      1.0,
+      0.1,
+      0.0,
+      0.05,
+      0.05,
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-debug-02",
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-15T11:43:31.055155+00:00"
+  },
+  {
+    "candidate_ids": [
+      "6f4dcdb0f7bc84adb96806baf36cd63d",
+      "5919bf39cb978f0b88ec3651b33bd162",
+      "a4a22f481837bc62138f6c4226540c22",
+      "3029925b8ab6108d7851e63573156fb8",
+      "1bde7b80708bb71aa5ed944eac3318f9",
+      "72b22b3b7ce9e7e93819dee359fb4065",
+      "ec478c807538c290e0e5536e7ede087b",
+      "0e17595ccb352908ff636217f9e72246",
+      "baed4cd967ce9c0fdac95fd0c14c8915",
+      "e8ea18886c26aee678dbe9d2cbace235"
+    ],
+    "judge_scores": [
+      0.7,
+      0.9,
+      0.8,
+      0.7,
+      0.7,
+      0.95,
+      0.95,
+      0.8,
+      0.4,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-debug-03",
+    "recall_at_k": 0.8,
+    "timestamp": "2026-04-15T11:43:55.879101+00:00"
+  },
+  {
+    "candidate_ids": [
+      "research_sunday_reopen_2026-03-28",
+      "27b1ac3ce77d18ac4236c763bb2d26ce",
+      "2245aa531c80a9a9c497fef251b51a1c",
+      "plan_2026-03-28_enhancement_v85",
+      "969e78261b5c05f3671d57163db8a3a3",
+      "plan_2026-03-27_enhancement_v82",
+      "8e0d714b97fc89f9dea332402d842aa8",
+      "plan_2026-03-28_enhancement_v87",
+      "27752e908976b93f252d162671c0a784",
+      "ace3ced3c6b8a199a01ebbfce55260dd"
+    ],
+    "judge_scores": [
+      1.0,
+      0.7,
+      0.5,
+      0.5,
+      0.3,
+      0.5,
+      0.3,
+      0.5,
+      0.3,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-research-01",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:44:19.695207+00:00"
+  },
+  {
+    "candidate_ids": [
+      "research_sunday_reopen_2026-03-28",
+      "94e8287399abef88edac7125172cf058",
+      "27b1ac3ce77d18ac4236c763bb2d26ce",
+      "2f9678ca1d7264408d2dc53b1cc74bb3",
+      "research_novatrade_2026_april01_block13",
+      "research-2026-03-31-ftmo-2026-compliance",
+      "b20f5c2def40eb556f666489d92b9218",
+      "research_novatrade_live_reliability_2026-03-19",
+      "research_ftmo_compliance_8_gaps_2026-03-22",
+      "agent_self_diagnostics_patterns_2026"
+    ],
+    "judge_scores": [
+      1.0,
+      0.1,
+      0.3,
+      0.0,
+      0.1,
+      0.1,
+      0.2,
+      0.1,
+      0.1,
+      0.0
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-research-02",
+    "recall_at_k": 0.1,
+    "timestamp": "2026-04-15T11:44:41.567286+00:00"
+  },
+  {
+    "candidate_ids": [
+      "a1100da8879aac9981bf28f867c72620",
+      "22640b8e750ee0c990a7084c41bd4989",
+      "1c7efa1ca7202716072f8a0135d3ca97",
+      "37616e10dbed7f4cd8c0197969876f34",
+      "47ffaa88112ef96f6acaa39c3b762c9b",
+      "c581aaeb548a014b709f945b8013e1fa",
+      "research-irb-strategy-refinement-2026",
+      "465aa684c453ad1638605cca47bdbca7",
+      "research-2026-03-31-walkforward-config",
+      "research-irb-parameter-sensitivity-regime-optimization-2026-04"
+    ],
+    "judge_scores": [
+      0.9,
+      0.3,
+      0.2,
+      0.5,
+      0.2,
+      0.5,
+      0.3,
+      0.4,
+      0.2,
+      0.6
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-research-03",
+    "recall_at_k": 0.4,
+    "timestamp": "2026-04-15T11:45:03.743170+00:00"
+  },
+  {
+    "candidate_ids": [
+      "39251618e4b0595a7d8b59eb76ab2d96",
+      "ebe06229ab2f7120c880377d0ede0203",
+      "826adf933ea1f94b2b51dfff3d133ff5",
+      "4691875a4134c4842def02f3d7fc7c15",
+      "b089b188dafa6b67eb975d163140e06d",
+      "3c95318490ba6eacaa2e889baf6f27ec",
+      "3b8f12ce59235d041ba2168fe16acd0a",
+      "719c675941409242e936176337213355",
+      "275a3a005176df0673ec2344f29f0561",
+      "c3f236de6239cd9bb9c6ff1daf03963d"
+    ],
+    "judge_scores": [
+      0.85,
+      1.0,
+      0.85,
+      0.7,
+      0.8,
+      0.9,
+      0.65,
+      0.5,
+      0.8,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-entity-01",
+    "recall_at_k": 0.9,
+    "timestamp": "2026-04-15T11:45:27.399420+00:00"
+  },
+  {
+    "candidate_ids": [
+      "5919bf39cb978f0b88ec3651b33bd162",
+      "3fea21fc3bdf48ff1dffd9d7079eb617",
+      "a65bddcfe651924b9ef9a406f31c2220",
+      "03e814f348be2d93f4005f3ac60f1ba9",
+      "601543c776d06f8fac44c7b259c50816",
+      "b878dccd03ac2ccdfa616f84dc073cec",
+      "d43ff9bda92a5d727d5b795212f7f6b1",
+      "61dde2750e5852129c052937eafae0da",
+      "b1dcba158eb55ad071b94454c501d2db",
+      "monitoring_observability_inspection_report_march_2026"
+    ],
+    "judge_scores": [
+      0.85,
+      0.4,
+      0.05,
+      0.3,
+      1.0,
+      0.8,
+      0.25,
+      0.75,
+      0.7,
+      0.15
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-entity-02",
+    "recall_at_k": 0.5,
+    "timestamp": "2026-04-15T11:45:52.711268+00:00"
+  },
+  {
+    "candidate_ids": [
+      "7c21c8ce8be650cb126f416de6ae598c",
+      "077ef8252f734d6a0e52c216b0bd1fad",
+      "39c32ca6e368f464e387902dd8e036d2",
+      "31dd7954e01698cbb5781a58c45718b2",
+      "71f87af02135b2000755f986ebfe50a3",
+      "306fbcef7429926f04488f01041050ca",
+      "e1a0b87a08967186e5d3f15a395a68b1",
+      "03e814f348be2d93f4005f3ac60f1ba9",
+      "649f5d79bc2afbc80a24cc0fbddfaa6e",
+      "a2f3c5ed8d3a1018d35d4e5fb939e589"
+    ],
+    "judge_scores": [
+      0.7,
+      0.3,
+      0.3,
+      0.5,
+      1.0,
+      0.7,
+      0.5,
+      0.3,
+      0.7,
+      0.9
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-entity-03",
+    "recall_at_k": 0.7,
+    "timestamp": "2026-04-15T11:46:17.775241+00:00"
+  },
+  {
+    "candidate_ids": [
+      "597226b7e236e67cbba08b8fad061b1b",
+      "8e0d714b97fc89f9dea332402d842aa8",
+      "79ccb536bf4e0e0352792aba4e26eb53",
+      "c255fa343131738849913022526ff534",
+      "969e78261b5c05f3671d57163db8a3a3",
+      "4691875a4134c4842def02f3d7fc7c15",
+      "2245aa531c80a9a9c497fef251b51a1c",
+      "649f5d79bc2afbc80a24cc0fbddfaa6e",
+      "93414359b40e2a0c2fb2f49dfb18f251",
+      "70ddb39c9d391788b6828b177424030a"
+    ],
+    "judge_scores": [
+      0.5,
+      1.0,
+      0.5,
+      0.3,
+      0.7,
+      0.3,
+      0.7,
+      0.3,
+      0.3,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-monitoring-01",
+    "recall_at_k": 0.5,
+    "timestamp": "2026-04-15T11:46:42.463218+00:00"
+  },
+  {
+    "candidate_ids": [
+      "0c66416580fded419995542e0dd56813",
+      "05a5cfd1eb7591b7caf005ae485ca097",
+      "novatrade-build-doctrine-2026-03-15",
+      "7c8c34caa22f35f0fe585279614580cd",
+      "c3f236de6239cd9bb9c6ff1daf03963d",
+      "plan-v24-novatrade-priorities",
+      "45d6d8c2b726346429901d16525c0b8b",
+      "plan-registry-master-2026-03-15",
+      "plan_2026-03-15_enhancement_v30",
+      "novatrade-executive-council"
+    ],
+    "judge_scores": [
+      0.5,
+      1.0,
+      0.3,
+      0.5,
+      0.7,
+      0.5,
+      0.6,
+      0.4,
+      0.4,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nt-monitoring-02",
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-15T11:47:06.564499+00:00"
+  },
+  {
+    "candidate_ids": [
+      "005b347afc0f10618dadd5a283f37a58",
+      "nova_core_enhancement_plan_revised_2026",
+      "test-001-architecture",
+      "core-phase7-plan",
+      "research-circuit-breakers-2026-03",
+      "agent_design_patterns_2026_update",
+      "daily-summary-2026-03-10",
+      "agent_self_diagnostics_patterns_2026",
+      "autonomous_agent_landscape_2026",
+      "debug_worker_timeout_0403_0404"
+    ],
+    "judge_scores": [
+      0.5,
+      0.3,
+      0.7,
+      0.8,
+      0.3,
+      0.5,
+      0.2,
+      0.4,
+      0.4,
+      0.6
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-pattern-01",
+    "recall_at_k": 0.5,
+    "timestamp": "2026-04-15T11:47:25.494998+00:00"
+  },
+  {
+    "candidate_ids": [
+      "nova_core_enhancement_plan_2026",
+      "nova_core_enhancement_plan_revised_2026",
+      "015916fdfc5a8d32b280b96d4a46015e",
+      "plan-dual-memory-integration",
+      "core-skills-architecture",
+      "daily-summary-2026-03-10",
+      "skills_capability_gaps_research_2026",
+      "autonomous_agent_landscape_2026",
+      "skills_capability_gaps_2026",
+      "core-project-structure"
+    ],
+    "judge_scores": [
+      0.3,
+      0.1,
+      0.2,
+      0.3,
+      0.5,
+      0.1,
+      0.3,
+      0.3,
+      0.3,
+      0.1
+    ],
+    "mrr": 0.2,
+    "query_id": "nc-pattern-02",
+    "recall_at_k": 0.1,
+    "timestamp": "2026-04-15T11:47:43.631170+00:00"
+  },
+  {
+    "candidate_ids": [
+      "ee39119233e276c60dc72629fed10cce",
+      "baebd8fd9d732cdf2d870ab84cba057e",
+      "core-project-structure",
+      "9bf116720751cc0ba5eb5c561caf00a2",
+      "647033f22d97f95e87aa6aab87f1c54c",
+      "plan-dual-memory-integration",
+      "nova_core_enhancement_plan_revised_2026",
+      "daily-summary-2026-03-10",
+      "research-secret-management-2026-03",
+      "debug_worker_timeout_0403_0404"
+    ],
+    "judge_scores": [
+      0.5,
+      0.3,
+      0.3,
+      0.7,
+      0.7,
+      1.0,
+      0.1,
+      0.1,
+      0.0,
+      0.3
+    ],
+    "mrr": 1.0,
+    "query_id": "nc-pattern-03",
+    "recall_at_k": 0.4,
+    "timestamp": "2026-04-15T11:48:01.481081+00:00"
+  },
+  {
+    "candidate_ids": [],
+    "judge_scores": [],
+    "mrr": 0.0,
+    "query_id": "nc-pattern-04",
+    "recall_at_k": 0.0,
+    "timestamp": "2026-04-15T11:48:01.539162+00:00"
+  }
+]
