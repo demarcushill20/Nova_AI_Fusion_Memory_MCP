@@ -21,6 +21,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Sequence
@@ -29,6 +30,12 @@ from typing import Any, Dict, List, Sequence
 DEFAULT_MODEL = "claude-opus-4-6"
 DEFAULT_EFFORT = "high"
 DEFAULT_TIMEOUT_SEC = 300
+
+# Retry policy for transient `claude -p` failures (rate limiting, session
+# renewal, empty-stderr exit-1 hiccups observed mid-run). Exponential
+# backoff: attempt 1 immediate, attempt 2 after 2s, attempt 3 after 4s.
+_RETRY_MAX_ATTEMPTS = 3
+_RETRY_BACKOFF_SEC = (0.0, 2.0, 4.0)
 
 # Candidate memory content is truncated before being shown to the judge so
 # a single runaway memory can't blow past the prompt budget. Matches
@@ -150,6 +157,13 @@ class ClaudeCLIJudge:
         stdout with a ``result`` field containing the model response. We
         return the ``result`` field verbatim — the caller is responsible
         for stripping markdown fences and parsing the inner JSON.
+
+        Retries on transient failures (subprocess exit != 0, envelope
+        JSON parse error, or envelope ``is_error: true``) with
+        exponential backoff per :data:`_RETRY_BACKOFF_SEC`. A timeout is
+        NOT retried because it usually indicates a real problem
+        (runaway generation, hung CLI) and re-running would just double
+        the wall-clock cost without a better outcome.
         """
         cmd = [
             "claude",
@@ -161,48 +175,75 @@ class ClaudeCLIJudge:
             "--output-format",
             "json",
         ]
-        try:
-            proc = subprocess.run(
-                cmd,
-                input=prompt,
-                capture_output=True,
-                text=True,
-                timeout=self.config.timeout_sec,
-                check=False,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise RuntimeError(
-                f"ClaudeCLIJudge: 'claude -p' timed out after"
-                f" {self.config.timeout_sec}s"
-            ) from exc
 
-        if proc.returncode != 0:
-            raise RuntimeError(
-                f"ClaudeCLIJudge: 'claude -p' exited {proc.returncode}.\n"
-                f"stderr:\n{proc.stderr}"
-            )
+        last_error: RuntimeError | None = None
+        for attempt in range(1, _RETRY_MAX_ATTEMPTS + 1):
+            backoff = _RETRY_BACKOFF_SEC[attempt - 1]
+            if backoff > 0:
+                print(
+                    f"  [cli_judge] retry {attempt}/{_RETRY_MAX_ATTEMPTS} "
+                    f"after {backoff}s backoff...",
+                    flush=True,
+                )
+                time.sleep(backoff)
 
-        try:
-            envelope = json.loads(proc.stdout)
-        except json.JSONDecodeError as exc:
-            raise RuntimeError(
-                "ClaudeCLIJudge: could not parse CLI envelope JSON.\n"
-                f"stdout:\n{proc.stdout[:2000]}"
-            ) from exc
+            try:
+                proc = subprocess.run(
+                    cmd,
+                    input=prompt,
+                    capture_output=True,
+                    text=True,
+                    timeout=self.config.timeout_sec,
+                    check=False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                # Timeouts are NOT retried — propagate immediately.
+                raise RuntimeError(
+                    f"ClaudeCLIJudge: 'claude -p' timed out after"
+                    f" {self.config.timeout_sec}s"
+                ) from exc
 
-        if envelope.get("is_error"):
-            raise RuntimeError(
-                "ClaudeCLIJudge: CLI envelope reported is_error=true. "
-                f"result={envelope.get('result')!r}"
-            )
+            if proc.returncode != 0:
+                last_error = RuntimeError(
+                    f"ClaudeCLIJudge: 'claude -p' exited {proc.returncode} "
+                    f"(attempt {attempt}/{_RETRY_MAX_ATTEMPTS}).\n"
+                    f"stderr:\n{proc.stderr}"
+                )
+                continue
 
-        result = envelope.get("result")
-        if not isinstance(result, str):
-            raise RuntimeError(
-                "ClaudeCLIJudge: CLI envelope missing 'result' string. "
-                f"envelope keys={list(envelope.keys())}"
-            )
-        return result
+            try:
+                envelope = json.loads(proc.stdout)
+            except json.JSONDecodeError:
+                last_error = RuntimeError(
+                    "ClaudeCLIJudge: could not parse CLI envelope JSON "
+                    f"(attempt {attempt}/{_RETRY_MAX_ATTEMPTS}).\n"
+                    f"stdout:\n{proc.stdout[:2000]}"
+                )
+                continue
+
+            if envelope.get("is_error"):
+                last_error = RuntimeError(
+                    "ClaudeCLIJudge: CLI envelope reported is_error=true "
+                    f"(attempt {attempt}/{_RETRY_MAX_ATTEMPTS}). "
+                    f"result={envelope.get('result')!r}"
+                )
+                continue
+
+            result = envelope.get("result")
+            if not isinstance(result, str):
+                last_error = RuntimeError(
+                    "ClaudeCLIJudge: CLI envelope missing 'result' string "
+                    f"(attempt {attempt}/{_RETRY_MAX_ATTEMPTS}). "
+                    f"envelope keys={list(envelope.keys())}"
+                )
+                continue
+
+            # Success path — return the raw result string.
+            return result
+
+        # All attempts exhausted.
+        assert last_error is not None
+        raise last_error
 
     @staticmethod
     def _strip_fences(raw: str) -> str:

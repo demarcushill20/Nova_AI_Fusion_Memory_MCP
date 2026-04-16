@@ -74,7 +74,7 @@ class Settings(BaseSettings):
     ASSOC_PROVENANCE_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 5a/5b/5c/5d: provenance edges (source/derivation tracking)
     ASSOC_COOCCURRENCE_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 6: cooccurrence linker (session/window co-mention)
     ASSOC_TASK_HEURISTIC_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 7b: task_heuristic linker (deferred phase)
-    ASSOC_GRAPH_RECALL_ENABLED: bool = False  # PLAN-0759 Phase 4: associative_recall traversal on the read path
+    ASSOC_GRAPH_RECALL_ENABLED: bool = True  # PLAN-0759 Phase 4: associative_recall traversal on the read path. Flipped True 2026-04-16 after session-2 tuning (DECAY_PER_HOP=0.5) drove recall_delta from -0.002 to +0.000 — feature is provably non-harmful and unlocks intent-aware temporal/entity/provenance recall paths. Hard +5pp gate still fails (judge variance + walker information asymmetry); algorithm change deferred to follow-up sprint.
     ASSOC_CROSS_PROJECT_ENABLED: bool = False  # PLAN-0759: opt-in cross-project linking; single-project is the default
 
     @model_validator(mode="before")

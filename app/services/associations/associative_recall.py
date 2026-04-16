@@ -82,7 +82,17 @@ class AssociativeRecall:
     MAX_HOPS: int = 2
     MAX_EXPANSION: int = 20
     MIN_EDGE_WEIGHT: float = 0.5
-    DECAY_PER_HOP: float = 0.7
+    # Path-1 tuning (2026-04-15 session 2): was 0.7 — lowered to 0.5 to
+    # reduce displacement of high-scoring seeds by expansion candidates.
+    # At 0.5, hop-1 candidates cap at seed_score * edge_weight * 0.5,
+    # landing at the bottom of the typical seed distribution rather than
+    # mid-pack. Apparent improvement at this setting was recall_delta
+    # -0.002 → +0.000, mrr_delta -0.037 → -0.023 (vs DECAY=0.7); a
+    # follow-on DECAY=0.3 run regressed (-0.036 recall) but with a
+    # 2.8pp shift in the supposedly-deterministic baseline, indicating
+    # the judge variance is at the edge of what tuning at this
+    # granularity can resolve. DECAY=0.5 is the best-known config.
+    DECAY_PER_HOP: float = 0.5
 
     def __init__(self, edge_service: Any, content_fetcher: Any = None) -> None:
         self._edge_service = edge_service
