@@ -17,17 +17,17 @@
       1.0,
       1.0,
       0.3,
-      0.3,
+      0.2,
       0.7,
       0.5,
-      0.7,
-      0.7,
+      0.6,
+      0.6,
       0.7
     ],
     "mrr": 1.0,
     "query_id": "nc-decision-01",
     "recall_at_k": 0.8,
-    "timestamp": "2026-04-15T11:30:54.895479+00:00"
+    "timestamp": "2026-04-18T20:07:41.411359+00:00"
   },
   {
     "candidate_ids": [
@@ -39,8 +39,8 @@
       "plan_2026-03-13_enhancement_v11",
       "plan_2026-03-12_enhancement_v4",
       "plan_2026-03-14_enhancement_v21",
-      "plan_2026-03-13_enhancement_v13",
-      "plan_2026-03-13_enhancement_v10"
+      "plan_2026-03-13_enhancement_v10",
+      "plan_2026-03-13_enhancement_v13"
     ],
     "judge_scores": [
       1.0,
@@ -57,7 +57,7 @@
     "mrr": 1.0,
     "query_id": "nc-decision-02",
     "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:31:13.495276+00:00"
+    "timestamp": "2026-04-18T20:08:00.819252+00:00"
   },
   {
     "candidate_ids": [
@@ -65,29 +65,29 @@
       "plan-dual-memory-integration",
       "v32-status-update-20260319",
       "015916fdfc5a8d32b280b96d4a46015e",
-      "plan-security-hardening-lethal-trifecta-2026-03-12",
       "abdeea57d674cec26f3056c365706212",
-      "3f5950b0bc916d29f54488af8af6d359",
-      "f52b845a077a41699fbadbaad6aed774",
-      "openclaw_phase2_integration_analysis_2026",
-      "core-completed-work"
+      "41b7b936fb78b2ab202b2d198895b903",
+      "plan_2026-03-24_enhancement_v77",
+      "plan_2026-03-12_ceo_nova_telegram_status",
+      "91326a1ee3ef7664fdd71d7c71845799",
+      "session-synthesis-2026-03-18"
     ],
     "judge_scores": [
       1.0,
       0.5,
       0.3,
       0.0,
-      0.0,
-      0.0,
-      0.0,
       0.1,
+      0.9,
       0.0,
-      0.0
+      0.0,
+      0.3,
+      0.3
     ],
     "mrr": 1.0,
     "query_id": "nc-decision-03",
-    "recall_at_k": 0.2,
-    "timestamp": "2026-04-15T11:31:35.267434+00:00"
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-18T20:08:22.923289+00:00"
   },
   {
     "candidate_ids": [
@@ -105,49 +105,49 @@
     "judge_scores": [
       1.0,
       0.3,
+      0.3,
+      0.3,
+      0.3,
       0.5,
-      0.5,
       0.3,
-      0.5,
-      0.3,
-      0.3,
-      0.3,
-      0.3
+      0.2,
+      0.2,
+      0.2
     ],
     "mrr": 1.0,
     "query_id": "nc-decision-04",
-    "recall_at_k": 0.4,
-    "timestamp": "2026-04-15T11:31:56.719050+00:00"
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-18T20:08:43.619053+00:00"
   },
   {
     "candidate_ids": [
       "bdee22dd01c12bfd11051d04b1b190e2",
       "novatrade-build-doctrine-2026-03-15",
       "plan_2026-03-31_enhancement_v102",
-      "20314361a51928c85dbe2551c210c6b3",
       "plan_2026-03-30_enhancement_v94",
+      "20314361a51928c85dbe2551c210c6b3",
       "plan_2026-03-31_enhancement_v99",
-      "c255fa343131738849913022526ff534",
       "plan_2026-03-16_enhancement_v31",
-      "novatrade-strategy-selection-decision",
-      "novatrade-autoresearch-critique-assessment"
+      "c255fa343131738849913022526ff534",
+      "novatrade-autoresearch-critique-assessment",
+      "research-novatrade-edge-durability-degradation-detection-2026-04"
     ],
     "judge_scores": [
       0.3,
-      0.7,
       0.5,
       0.4,
-      0.5,
+      0.4,
       0.3,
+      0.3,
+      0.3,
+      0.2,
       0.5,
-      0.4,
-      0.9,
-      0.5
+      0.7
     ],
     "mrr": 0.5,
     "query_id": "nc-decision-05",
-    "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:32:21.159251+00:00"
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-18T20:09:08.667262+00:00"
   },
   {
     "candidate_ids": [
@@ -163,21 +163,21 @@
       "plan_2026-03-18_enhancement_v46"
     ],
     "judge_scores": [
-      0.8,
-      0.85,
+      0.7,
       0.6,
-      0.4,
-      0.5,
-      0.55,
       0.3,
-      0.25,
       0.2,
-      0.15
+      0.3,
+      0.3,
+      0.2,
+      0.1,
+      0.1,
+      0.1
     ],
     "mrr": 1.0,
     "query_id": "nc-decision-06",
-    "recall_at_k": 0.5,
-    "timestamp": "2026-04-15T11:32:47.283170+00:00"
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-18T20:09:32.707337+00:00"
   },
   {
     "candidate_ids": [
@@ -194,27 +194,27 @@
     ],
     "judge_scores": [
       0.8,
-      0.1,
-      0.6,
+      0.2,
+      0.7,
       1.0,
       0.95,
       0.5,
       0.7,
+      0.3,
       0.2,
-      0.1,
-      0.2
+      0.3
     ],
     "mrr": 1.0,
     "query_id": "nc-arch-01",
     "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:33:16.303375+00:00"
+    "timestamp": "2026-04-18T20:09:58.155380+00:00"
   },
   {
     "candidate_ids": [
       "research_2026-03-12_prompt_engineering_agent_architecture",
       "research_2026-03-13_ai_agent_reliability_engineering_sre",
-      "0f651b349a93dd5b115f45573ac10966",
       "0c66416580fded419995542e0dd56813",
+      "0f651b349a93dd5b115f45573ac10966",
       "research_2026-03-12_durable_execution_crash_recovery",
       "research-agent-security-hardening-2026-03",
       "research_2026-03-12_agent_eval_frameworks",
@@ -225,19 +225,19 @@
     "judge_scores": [
       1.0,
       0.3,
-      0.3,
+      0.5,
+      0.5,
       0.5,
       0.3,
-      0.1,
       0.3,
-      0.1,
+      0.3,
       0.7,
-      0.2
+      0.3
     ],
     "mrr": 1.0,
     "query_id": "nc-arch-02",
-    "recall_at_k": 0.3,
-    "timestamp": "2026-04-15T11:33:35.771076+00:00"
+    "recall_at_k": 0.5,
+    "timestamp": "2026-04-18T20:10:21.411150+00:00"
   },
   {
     "candidate_ids": [
@@ -267,7 +267,7 @@
     "mrr": 1.0,
     "query_id": "nc-arch-03",
     "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:33:57.983085+00:00"
+    "timestamp": "2026-04-18T20:10:45.779522+00:00"
   },
   {
     "candidate_ids": [
@@ -278,26 +278,26 @@
       "plan-memory-roadmap-completed-2026-03-15",
       "647033f22d97f95e87aa6aab87f1c54c",
       "1d404d109707b57f09c5f4faeecf9676",
+      "69b0e8edcbd1bf5f98d525e118e1363a",
       "core-project-structure",
-      "778f9740817e2888cc9765087324a18e",
-      "bbdde64d5a666200f65bc784b024582d"
+      "d87364e7a73ae28c7d5b94e11c9890f2"
     ],
     "judge_scores": [
       1.0,
       0.1,
       0.3,
-      0.0,
+      0.1,
       0.5,
       0.3,
-      0.3,
-      0.1,
+      0.2,
       0.0,
+      0.1,
       0.0
     ],
     "mrr": 1.0,
     "query_id": "nc-arch-04",
     "recall_at_k": 0.2,
-    "timestamp": "2026-04-15T11:34:19.015133+00:00"
+    "timestamp": "2026-04-18T20:11:08.771326+00:00"
   },
   {
     "candidate_ids": [
@@ -317,17 +317,17 @@
       0.7,
       0.6,
       0.8,
-      0.3,
+      0.4,
       0.5,
       0.2,
       0.6,
-      0.2,
-      0.3
+      0.3,
+      0.4
     ],
     "mrr": 1.0,
     "query_id": "nc-arch-05",
     "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:34:41.543184+00:00"
+    "timestamp": "2026-04-18T20:11:30.573816+00:00"
   },
   {
     "candidate_ids": [
@@ -343,21 +343,21 @@
       "core-user-preferences"
     ],
     "judge_scores": [
-      0.05,
       0.0,
-      0.85,
-      0.05,
       0.0,
-      0.4,
+      0.7,
+      0.0,
+      0.0,
+      0.3,
       0.5,
-      0.35,
-      0.2,
+      0.3,
+      0.1,
       0.0
     ],
     "mrr": 0.3333333333333333,
     "query_id": "nc-arch-06",
     "recall_at_k": 0.2,
-    "timestamp": "2026-04-15T11:35:00.803167+00:00"
+    "timestamp": "2026-04-18T20:11:48.811179+00:00"
   },
   {
     "candidate_ids": [
@@ -380,14 +380,14 @@
       0.2,
       0.0,
       0.0,
-      0.3,
       0.1,
+      0.0,
       0.1
     ],
     "mrr": 1.0,
     "query_id": "nc-debug-01",
     "recall_at_k": 0.1,
-    "timestamp": "2026-04-15T11:35:23.283909+00:00"
+    "timestamp": "2026-04-18T20:12:13.407175+00:00"
   },
   {
     "candidate_ids": [
@@ -397,8 +397,8 @@
       "b1af8d9dd758c63de3290fc8e782f0ea",
       "641d9742d653dec2f964e6767414476e",
       "plan_2026-04-01_enhancement_v107",
-      "f29078a2151202d0f723298562036938",
       "f5a7858f1ba3063fa65bfc199c978726",
+      "f29078a2151202d0f723298562036938",
       "897b3edb7134347cc01527b2bc964842",
       "c3d1c779b52a4e915456769a1c062a9f"
     ],
@@ -409,22 +409,22 @@
       0.5,
       0.3,
       0.3,
-      0.3,
       0.9,
+      0.3,
       0.1,
       0.5
     ],
     "mrr": 1.0,
     "query_id": "nc-debug-02",
     "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:35:45.139317+00:00"
+    "timestamp": "2026-04-18T20:12:34.651187+00:00"
   },
   {
     "candidate_ids": [
-      "f29078a2151202d0f723298562036938",
       "plan_2026-03-31_enhancement_v98",
-      "2872aac1418991dbf52938a874bc1c9b",
+      "f29078a2151202d0f723298562036938",
       "7c21c8ce8be650cb126f416de6ae598c",
+      "2872aac1418991dbf52938a874bc1c9b",
       "f625a68ab6a4f04addad6578c696b85e",
       "897b3edb7134347cc01527b2bc964842",
       "f110ed1c806dcb37e988cb702dec2c75",
@@ -433,57 +433,57 @@
       "3908d49f0e9a7d0efb524cb8769b9c88"
     ],
     "judge_scores": [
-      0.9,
-      0.85,
+      1.0,
+      0.5,
       0.7,
-      0.8,
-      0.65,
-      0.65,
+      0.7,
+      0.7,
+      0.7,
       0.5,
       0.5,
-      0.75,
-      0.85
+      0.7,
+      0.7
     ],
     "mrr": 1.0,
     "query_id": "nc-debug-03",
     "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:36:07.711389+00:00"
+    "timestamp": "2026-04-18T20:13:00.710186+00:00"
   },
   {
     "candidate_ids": [
-      "6c4cabc6dcf9d0bcca84e509d06a51e5",
+      "0c2267d8de6bd9d5bc5e42a53f0b8ae7",
       "research-rag-implementation-roadmap-2026",
+      "6c4cabc6dcf9d0bcca84e509d06a51e5",
       "core-fusion-memory-architecture",
       "system_health_audit_20260318",
       "4a7e48f3bff14ca3c7ac85a7a5f9e6ca",
-      "research_2026-03-12_graphrag_knowledge_graph_agent_memory",
       "research-rag-synthesis-2026-full",
-      "4d42a3b9d71e8bedd115eb5abb4ce7cf",
       "memory-hygiene-2026-03-26",
-      "3a5883175bfb5e131b05172dd292476e"
+      "3a5883175bfb5e131b05172dd292476e",
+      "4d42a3b9d71e8bedd115eb5abb4ce7cf"
     ],
     "judge_scores": [
+      0.7,
       0.3,
       0.2,
       0.5,
       0.3,
       0.2,
-      0.5,
       0.3,
       0.2,
-      0.3,
-      0.1
+      0.1,
+      0.2
     ],
-    "mrr": 0.3333333333333333,
+    "mrr": 1.0,
     "query_id": "nc-debug-04",
     "recall_at_k": 0.2,
-    "timestamp": "2026-04-15T11:36:30.007113+00:00"
+    "timestamp": "2026-04-18T20:13:29.399291+00:00"
   },
   {
     "candidate_ids": [
       "research_2026-03-12_prompt_engineering_agent_architecture",
-      "research_2026-03-13_context_engineering",
       "plan_2026-03-13_enhancement_v14",
+      "research_2026-03-13_context_engineering",
       "e34f7320cf9f4b7de89e85b2574062ce",
       "research_2026-03-14_tool_use_optimization",
       "research_2026-03-13_llm_as_judge_evaluation",
@@ -495,19 +495,19 @@
     "judge_scores": [
       1.0,
       0.3,
-      0.1,
-      0.5,
+      0.3,
+      0.7,
       0.1,
       0.3,
       0.1,
       0.3,
-      0.1,
+      0.2,
       0.5
     ],
     "mrr": 1.0,
     "query_id": "nc-research-01",
     "recall_at_k": 0.3,
-    "timestamp": "2026-04-15T11:36:50.883191+00:00"
+    "timestamp": "2026-04-18T20:13:51.795476+00:00"
   },
   {
     "candidate_ids": [
@@ -523,21 +523,21 @@
       "mcp_ecosystem_survey_2026"
     ],
     "judge_scores": [
-      0.9,
-      1.0,
+      0.95,
+      0.98,
       0.95,
       0.95,
-      0.85,
+      0.9,
+      0.92,
+      0.93,
       0.9,
       0.9,
-      0.85,
-      0.85,
-      0.85
+      0.9
     ],
     "mrr": 1.0,
     "query_id": "nc-research-02",
     "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:37:14.863146+00:00"
+    "timestamp": "2026-04-18T20:14:16.892551+00:00"
   },
   {
     "candidate_ids": [
@@ -553,12 +553,12 @@
       "skills_capability_gaps_2026"
     ],
     "judge_scores": [
-      0.85,
+      0.9,
       0.3,
       0.5,
       0.1,
-      0.4,
-      0.9,
+      0.5,
+      1.0,
       0.1,
       0.2,
       0.3,
@@ -566,8 +566,8 @@
     ],
     "mrr": 1.0,
     "query_id": "nc-research-03",
-    "recall_at_k": 0.3,
-    "timestamp": "2026-04-15T11:37:40.467285+00:00"
+    "recall_at_k": 0.4,
+    "timestamp": "2026-04-18T20:14:42.167173+00:00"
   },
   {
     "candidate_ids": [
@@ -584,20 +584,20 @@
     ],
     "judge_scores": [
       0.9,
-      0.9,
-      0.9,
+      0.95,
+      0.95,
       0.7,
       1.0,
-      0.5,
+      0.4,
       0.8,
-      0.7,
       0.6,
-      0.6
+      0.5,
+      0.5
     ],
     "mrr": 1.0,
     "query_id": "nc-entity-01",
-    "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:38:03.271510+00:00"
+    "recall_at_k": 0.9,
+    "timestamp": "2026-04-18T20:15:06.029620+00:00"
   },
   {
     "candidate_ids": [
@@ -607,9 +607,9 @@
       "plan_enhancement_v5_phase4_overview",
       "a65bddcfe651924b9ef9a406f31c2220",
       "a347e1548525afbba67e79b6ca271c5c",
-      "plan_2026-03-18_enhancement_v45",
       "ef96f65365f55e903fbcc22db722ddda",
       "agent_observability_tools_research_march_2026",
+      "1d91a44ecac2898206aa102848e63a13",
       "agent_self_diagnostics_patterns_2026"
     ],
     "judge_scores": [
@@ -617,17 +617,17 @@
       0.5,
       0.7,
       0.7,
-      0.4,
+      0.5,
       0.3,
       0.6,
-      0.5,
-      0.6,
-      0.5
+      0.7,
+      0.7,
+      0.6
     ],
     "mrr": 1.0,
     "query_id": "nc-entity-02",
-    "recall_at_k": 0.8,
-    "timestamp": "2026-04-15T11:38:29.171177+00:00"
+    "recall_at_k": 0.9,
+    "timestamp": "2026-04-18T20:15:32.262211+00:00"
   },
   {
     "candidate_ids": [
@@ -648,8 +648,8 @@
       0.4,
       0.3,
       0.1,
-      0.4,
-      0.8,
+      0.3,
+      0.7,
       0.1,
       0.5,
       0.6
@@ -657,14 +657,14 @@
     "mrr": 0.5,
     "query_id": "nc-entity-03",
     "recall_at_k": 0.4,
-    "timestamp": "2026-04-15T11:38:53.815325+00:00"
+    "timestamp": "2026-04-18T20:15:58.611134+00:00"
   },
   {
     "candidate_ids": [
+      "novatrade-build-doctrine-2026-03-15",
       "nova_core_enhancement_plan_2026",
       "test-001-architecture",
       "core-phase7-plan",
-      "core-skills-architecture",
       "005b347afc0f10618dadd5a283f37a58",
       "agent_design_patterns_2026_update",
       "agent_self_diagnostics_patterns_2026",
@@ -673,21 +673,21 @@
       "debug_worker_timeout_0403_0404"
     ],
     "judge_scores": [
+      0.0,
       0.1,
-      0.7,
-      0.8,
       0.5,
+      0.7,
+      0.2,
       0.3,
-      0.4,
-      0.3,
-      0.4,
-      0.3,
-      0.3
+      0.1,
+      0.2,
+      0.2,
+      0.1
     ],
-    "mrr": 0.5,
+    "mrr": 0.3333333333333333,
     "query_id": "nc-entity-04",
-    "recall_at_k": 0.3,
-    "timestamp": "2026-04-15T11:39:14.815264+00:00"
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-18T20:16:17.561533+00:00"
   },
   {
     "candidate_ids": [],
@@ -695,7 +695,7 @@
     "mrr": 0.0,
     "query_id": "nc-session-01",
     "recall_at_k": 0.0,
-    "timestamp": "2026-04-15T11:39:14.859050+00:00"
+    "timestamp": "2026-04-18T20:16:17.622841+00:00"
   },
   {
     "candidate_ids": [],
@@ -703,37 +703,37 @@
     "mrr": 0.0,
     "query_id": "nc-session-02",
     "recall_at_k": 0.0,
-    "timestamp": "2026-04-15T11:39:14.902051+00:00"
+    "timestamp": "2026-04-18T20:16:17.668630+00:00"
   },
   {
     "candidate_ids": [
+      "0c2267d8de6bd9d5bc5e42a53f0b8ae7",
       "plan-associative-linking-2026-04-13",
+      "e7fff77584a553f0b81690760f5747da",
       "plan_phase6_complete_20260318",
       "plan-memory-roadmap-completed-2026-03-15",
-      "plan_2026-03-18_enhancement_v32_update",
+      "plan_2026-03-15_enhancement_v28",
       "plan_2026-03-13_enhancement_v12",
       "58d7802d20cd0d37a69b1d36dfc78eb2",
-      "plan_2026-03-15_enhancement_v28",
       "64523263e8ee7348b12a098b03dc5caa",
-      "0d46d878e7fdef7b603bfb5877569e7c",
       "834a1818254a7ffbb2a9c65fe085a254"
     ],
     "judge_scores": [
+      0.9,
       0.7,
+      0.85,
+      0.15,
       0.3,
-      0.5,
-      0.3,
-      0.3,
-      0.3,
-      0.3,
-      0.2,
-      0.3,
-      0.3
+      0.15,
+      0.1,
+      0.1,
+      0.1,
+      0.1
     ],
     "mrr": 1.0,
     "query_id": "nc-session-03",
-    "recall_at_k": 0.2,
-    "timestamp": "2026-04-15T11:39:35.603215+00:00"
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-18T20:16:39.314790+00:00"
   },
   {
     "candidate_ids": [
@@ -755,21 +755,21 @@
       0.7,
       0.3,
       0.5,
+      0.7,
       0.5,
-      0.3,
       0.3,
       0.3
     ],
     "mrr": 1.0,
     "query_id": "nt-decision-01",
-    "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:39:59.067257+00:00"
+    "recall_at_k": 0.7,
+    "timestamp": "2026-04-18T20:17:01.895781+00:00"
   },
   {
     "candidate_ids": [
       "c6386bd9750de5e082d348acc22119c4",
-      "5a8848921f51b2a04a706d133c88f1bd",
       "ffa77ca71581b1be47674698a5b7e8ed",
+      "5a8848921f51b2a04a706d133c88f1bd",
       "f625a68ab6a4f04addad6578c696b85e",
       "2872aac1418991dbf52938a874bc1c9b",
       "4943154eceb8709cf4962b9ba2b688b1",
@@ -779,21 +779,21 @@
       "bb6392ee6ede39be23f3e3a8b133d364"
     ],
     "judge_scores": [
-      0.95,
-      0.15,
       1.0,
-      0.2,
-      0.15,
-      0.15,
-      0.15,
-      0.15,
-      0.4,
+      1.0,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.3,
+      0.5,
       0.9
     ],
     "mrr": 1.0,
     "query_id": "nt-decision-02",
-    "recall_at_k": 0.3,
-    "timestamp": "2026-04-15T11:40:23.823092+00:00"
+    "recall_at_k": 0.4,
+    "timestamp": "2026-04-18T20:17:28.531099+00:00"
   },
   {
     "candidate_ids": [
@@ -802,20 +802,20 @@
       "research_ftmo_compliance_checklist_2026-03-26",
       "b20f5c2def40eb556f666489d92b9218",
       "27b1ac3ce77d18ac4236c763bb2d26ce",
-      "research-novatrade-actionable-findings-2026-04",
       "a5ae298b5d1847b25dcf1a1d214a68c7",
+      "research-novatrade-actionable-findings-2026-04",
       "785c40474fb42c1a5d30f6f76479c61c",
       "research_novatrade_2026_march28_update",
       "research_metaapi_ftmo_2026"
     ],
     "judge_scores": [
-      0.9,
       0.7,
+      0.5,
       0.6,
       0.3,
       0.5,
-      0.5,
       0.2,
+      0.5,
       0.1,
       0.3,
       0.2
@@ -823,14 +823,14 @@
     "mrr": 1.0,
     "query_id": "nt-decision-03",
     "recall_at_k": 0.5,
-    "timestamp": "2026-04-15T11:40:48.747291+00:00"
+    "timestamp": "2026-04-18T20:17:54.944201+00:00"
   },
   {
     "candidate_ids": [
       "a1100da8879aac9981bf28f867c72620",
       "05a5cfd1eb7591b7caf005ae485ca097",
-      "0cdce2fc21f12f825d1c5e845766cba0",
       "57c333504688ac048d446381b12123b2",
+      "0cdce2fc21f12f825d1c5e845766cba0",
       "research-irb-parameter-sensitivity-regime-optimization-2026-04",
       "plan_2026-04-01_enhancement_v106",
       "8e2b5a8da9aa952ef7c4ff370c3eb6d0",
@@ -841,8 +841,8 @@
     "judge_scores": [
       1.0,
       0.5,
-      0.7,
       0.5,
+      0.7,
       0.7,
       0.3,
       0.5,
@@ -853,7 +853,7 @@
     "mrr": 1.0,
     "query_id": "nt-decision-04",
     "recall_at_k": 0.7,
-    "timestamp": "2026-04-15T11:41:15.299226+00:00"
+    "timestamp": "2026-04-18T20:18:22.720170+00:00"
   },
   {
     "candidate_ids": [
@@ -869,8 +869,8 @@
       "research_metaapi_ftmo_2026"
     ],
     "judge_scores": [
-      0.7,
-      0.9,
+      0.6,
+      0.8,
       0.7,
       0.8,
       0.5,
@@ -883,37 +883,37 @@
     "mrr": 1.0,
     "query_id": "nt-decision-05",
     "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:41:40.227339+00:00"
+    "timestamp": "2026-04-18T20:18:50.887232+00:00"
   },
   {
     "candidate_ids": [
       "31dd7954e01698cbb5781a58c45718b2",
-      "7c8c34caa22f35f0fe585279614580cd",
       "60902d54b98eb8189472a7badc140ebd",
+      "7c8c34caa22f35f0fe585279614580cd",
       "1f395ab637081cde8b8f3429970cdeb2",
       "b930546f9ff0cef751286004bb498722",
       "39c32ca6e368f464e387902dd8e036d2",
       "3f5950b0bc916d29f54488af8af6d359",
-      "plan_2026-03-24_enhancement_v77",
-      "plan_2026-03-31_enhancement_v99",
-      "24de384a13ffa02e322232c4711561fe"
+      "0cdce2fc21f12f825d1c5e845766cba0",
+      "research-novatrade-edge-durability-degradation-detection-2026-04",
+      "785c40474fb42c1a5d30f6f76479c61c"
     ],
     "judge_scores": [
+      0.7,
       0.5,
       0.3,
-      0.6,
       0.8,
       0.7,
       0.3,
       0.6,
-      0.5,
+      0.9,
       0.4,
-      0.5
+      0.7
     ],
     "mrr": 1.0,
     "query_id": "nt-arch-01",
     "recall_at_k": 0.7,
-    "timestamp": "2026-04-15T11:42:02.671282+00:00"
+    "timestamp": "2026-04-18T20:19:14.215428+00:00"
   },
   {
     "candidate_ids": [
@@ -933,17 +933,17 @@
       1.0,
       1.0,
       0.9,
-      0.9,
+      0.85,
       1.0,
       0.7,
       0.7,
-      0.9,
+      0.85,
       0.7
     ],
     "mrr": 1.0,
     "query_id": "nt-arch-02",
     "recall_at_k": 1.0,
-    "timestamp": "2026-04-15T11:42:24.983247+00:00"
+    "timestamp": "2026-04-18T20:19:37.999124+00:00"
   },
   {
     "candidate_ids": [],
@@ -951,7 +951,7 @@
     "mrr": 0.0,
     "query_id": "nt-arch-03",
     "recall_at_k": 0.0,
-    "timestamp": "2026-04-15T11:42:25.027643+00:00"
+    "timestamp": "2026-04-18T20:19:38.045535+00:00"
   },
   {
     "candidate_ids": [
@@ -968,20 +968,20 @@
     ],
     "judge_scores": [
       0.7,
-      0.8,
+      0.6,
+      0.5,
       0.5,
       0.6,
       0.7,
-      0.9,
       0.5,
-      0.7,
       0.6,
-      0.4
+      0.6,
+      0.5
     ],
     "mrr": 1.0,
     "query_id": "nt-arch-04",
-    "recall_at_k": 0.9,
-    "timestamp": "2026-04-15T11:42:47.979095+00:00"
+    "recall_at_k": 1.0,
+    "timestamp": "2026-04-18T20:20:01.945633+00:00"
   },
   {
     "candidate_ids": [
@@ -1011,7 +1011,7 @@
     "mrr": 1.0,
     "query_id": "nt-debug-01",
     "recall_at_k": 0.3,
-    "timestamp": "2026-04-15T11:43:11.983148+00:00"
+    "timestamp": "2026-04-18T20:20:26.235156+00:00"
   },
   {
     "candidate_ids": [
@@ -1027,12 +1027,12 @@
       "cb189de0f52a0f99aea1580589b02b12"
     ],
     "judge_scores": [
-      0.95,
+      0.9,
       1.0,
       0.1,
       0.0,
-      0.05,
-      0.05,
+      0.0,
+      0.0,
       0.0,
       0.0,
       0.0,
@@ -1041,7 +1041,7 @@
     "mrr": 1.0,
     "query_id": "nt-debug-02",
     "recall_at_k": 0.2,
-    "timestamp": "2026-04-15T11:43:31.055155+00:00"
+    "timestamp": "2026-04-18T20:20:47.914357+00:00"
   },
   {
     "candidate_ids": [
@@ -1049,8 +1049,8 @@
       "5919bf39cb978f0b88ec3651b33bd162",
       "a4a22f481837bc62138f6c4226540c22",
       "3029925b8ab6108d7851e63573156fb8",
-      "1bde7b80708bb71aa5ed944eac3318f9",
       "72b22b3b7ce9e7e93819dee359fb4065",
+      "1bde7b80708bb71aa5ed944eac3318f9",
       "ec478c807538c290e0e5536e7ede087b",
       "0e17595ccb352908ff636217f9e72246",
       "baed4cd967ce9c0fdac95fd0c14c8915",
@@ -1061,17 +1061,17 @@
       0.9,
       0.8,
       0.7,
+      0.95,
       0.7,
       0.95,
-      0.95,
-      0.8,
-      0.4,
+      0.7,
+      0.3,
       0.3
     ],
     "mrr": 1.0,
     "query_id": "nt-debug-03",
     "recall_at_k": 0.8,
-    "timestamp": "2026-04-15T11:43:55.879101+00:00"
+    "timestamp": "2026-04-18T20:21:15.907311+00:00"
   },
   {
     "candidate_ids": [
@@ -1079,29 +1079,29 @@
       "27b1ac3ce77d18ac4236c763bb2d26ce",
       "2245aa531c80a9a9c497fef251b51a1c",
       "plan_2026-03-28_enhancement_v85",
-      "969e78261b5c05f3671d57163db8a3a3",
       "plan_2026-03-27_enhancement_v82",
-      "8e0d714b97fc89f9dea332402d842aa8",
+      "969e78261b5c05f3671d57163db8a3a3",
       "plan_2026-03-28_enhancement_v87",
+      "8e0d714b97fc89f9dea332402d842aa8",
       "27752e908976b93f252d162671c0a784",
       "ace3ced3c6b8a199a01ebbfce55260dd"
     ],
     "judge_scores": [
       1.0,
       0.7,
-      0.5,
-      0.5,
       0.3,
       0.5,
       0.3,
-      0.5,
+      0.1,
       0.3,
+      0.1,
+      0.1,
       0.3
     ],
     "mrr": 1.0,
     "query_id": "nt-research-01",
-    "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:44:19.695207+00:00"
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-18T20:21:37.651421+00:00"
   },
   {
     "candidate_ids": [
@@ -1122,16 +1122,16 @@
       0.3,
       0.0,
       0.1,
+      0.0,
       0.1,
-      0.2,
       0.1,
-      0.1,
+      0.0,
       0.0
     ],
     "mrr": 1.0,
     "query_id": "nt-research-02",
     "recall_at_k": 0.1,
-    "timestamp": "2026-04-15T11:44:41.567286+00:00"
+    "timestamp": "2026-04-18T20:21:59.635119+00:00"
   },
   {
     "candidate_ids": [
@@ -1156,12 +1156,12 @@
       0.3,
       0.4,
       0.2,
-      0.6
+      0.7
     ],
     "mrr": 1.0,
     "query_id": "nt-research-03",
     "recall_at_k": 0.4,
-    "timestamp": "2026-04-15T11:45:03.743170+00:00"
+    "timestamp": "2026-04-18T20:22:21.384011+00:00"
   },
   {
     "candidate_ids": [
@@ -1177,27 +1177,27 @@
       "c3f236de6239cd9bb9c6ff1daf03963d"
     ],
     "judge_scores": [
-      0.85,
+      0.9,
       1.0,
-      0.85,
+      0.9,
       0.7,
       0.8,
       0.9,
-      0.65,
+      0.6,
       0.5,
-      0.8,
+      0.7,
       0.3
     ],
     "mrr": 1.0,
     "query_id": "nt-entity-01",
     "recall_at_k": 0.9,
-    "timestamp": "2026-04-15T11:45:27.399420+00:00"
+    "timestamp": "2026-04-18T20:22:46.375201+00:00"
   },
   {
     "candidate_ids": [
       "5919bf39cb978f0b88ec3651b33bd162",
       "3fea21fc3bdf48ff1dffd9d7079eb617",
-      "a65bddcfe651924b9ef9a406f31c2220",
+      "600791eb8b6828a8958d3ec4ad58e36e",
       "03e814f348be2d93f4005f3ac60f1ba9",
       "601543c776d06f8fac44c7b259c50816",
       "b878dccd03ac2ccdfa616f84dc073cec",
@@ -1209,19 +1209,19 @@
     "judge_scores": [
       0.85,
       0.4,
-      0.05,
-      0.3,
-      1.0,
+      0.5,
+      0.4,
+      0.95,
       0.8,
-      0.25,
+      0.3,
       0.75,
       0.7,
-      0.15
+      0.2
     ],
     "mrr": 1.0,
     "query_id": "nt-entity-02",
-    "recall_at_k": 0.5,
-    "timestamp": "2026-04-15T11:45:52.711268+00:00"
+    "recall_at_k": 0.6,
+    "timestamp": "2026-04-18T20:23:10.491212+00:00"
   },
   {
     "candidate_ids": [
@@ -1237,21 +1237,21 @@
       "a2f3c5ed8d3a1018d35d4e5fb939e589"
     ],
     "judge_scores": [
-      0.7,
-      0.3,
-      0.3,
+      0.9,
       0.5,
+      0.3,
+      0.6,
       1.0,
       0.7,
       0.5,
-      0.3,
-      0.7,
+      0.4,
+      0.8,
       0.9
     ],
     "mrr": 1.0,
     "query_id": "nt-entity-03",
-    "recall_at_k": 0.7,
-    "timestamp": "2026-04-15T11:46:17.775241+00:00"
+    "recall_at_k": 0.8,
+    "timestamp": "2026-04-18T20:23:37.503244+00:00"
   },
   {
     "candidate_ids": [
@@ -1259,29 +1259,29 @@
       "8e0d714b97fc89f9dea332402d842aa8",
       "79ccb536bf4e0e0352792aba4e26eb53",
       "c255fa343131738849913022526ff534",
-      "969e78261b5c05f3671d57163db8a3a3",
       "4691875a4134c4842def02f3d7fc7c15",
-      "2245aa531c80a9a9c497fef251b51a1c",
+      "969e78261b5c05f3671d57163db8a3a3",
       "649f5d79bc2afbc80a24cc0fbddfaa6e",
+      "2245aa531c80a9a9c497fef251b51a1c",
       "93414359b40e2a0c2fb2f49dfb18f251",
       "70ddb39c9d391788b6828b177424030a"
     ],
     "judge_scores": [
-      0.5,
+      0.3,
       1.0,
+      0.3,
+      0.1,
+      0.1,
+      0.7,
+      0.0,
       0.5,
-      0.3,
-      0.7,
-      0.3,
-      0.7,
-      0.3,
-      0.3,
-      0.3
+      0.1,
+      0.1
     ],
-    "mrr": 1.0,
+    "mrr": 0.5,
     "query_id": "nt-monitoring-01",
-    "recall_at_k": 0.5,
-    "timestamp": "2026-04-15T11:46:42.463218+00:00"
+    "recall_at_k": 0.3,
+    "timestamp": "2026-04-18T20:24:01.591355+00:00"
   },
   {
     "candidate_ids": [
@@ -1303,20 +1303,20 @@
       0.5,
       0.7,
       0.5,
-      0.6,
-      0.4,
-      0.4,
+      0.5,
+      0.3,
+      0.3,
       0.3
     ],
     "mrr": 1.0,
     "query_id": "nt-monitoring-02",
     "recall_at_k": 0.6,
-    "timestamp": "2026-04-15T11:47:06.564499+00:00"
+    "timestamp": "2026-04-18T20:24:26.143228+00:00"
   },
   {
     "candidate_ids": [
       "005b347afc0f10618dadd5a283f37a58",
-      "nova_core_enhancement_plan_revised_2026",
+      "novatrade-build-doctrine-2026-03-15",
       "test-001-architecture",
       "core-phase7-plan",
       "research-circuit-breakers-2026-03",
@@ -1333,7 +1333,7 @@
       0.8,
       0.3,
       0.5,
-      0.2,
+      0.3,
       0.4,
       0.4,
       0.6
@@ -1341,7 +1341,7 @@
     "mrr": 1.0,
     "query_id": "nc-pattern-01",
     "recall_at_k": 0.5,
-    "timestamp": "2026-04-15T11:47:25.494998+00:00"
+    "timestamp": "2026-04-18T20:24:46.039431+00:00"
   },
   {
     "candidate_ids": [
@@ -1364,14 +1364,14 @@
       0.5,
       0.1,
       0.3,
+      0.5,
       0.3,
-      0.3,
-      0.1
+      0.2
     ],
     "mrr": 0.2,
     "query_id": "nc-pattern-02",
-    "recall_at_k": 0.1,
-    "timestamp": "2026-04-15T11:47:43.631170+00:00"
+    "recall_at_k": 0.2,
+    "timestamp": "2026-04-18T20:25:01.731328+00:00"
   },
   {
     "candidate_ids": [
@@ -1401,7 +1401,7 @@
     "mrr": 1.0,
     "query_id": "nc-pattern-03",
     "recall_at_k": 0.4,
-    "timestamp": "2026-04-15T11:48:01.481081+00:00"
+    "timestamp": "2026-04-18T20:25:23.776823+00:00"
   },
   {
     "candidate_ids": [],
@@ -1409,6 +1409,6 @@
     "mrr": 0.0,
     "query_id": "nc-pattern-04",
     "recall_at_k": 0.0,
-    "timestamp": "2026-04-15T11:48:01.539162+00:00"
+    "timestamp": "2026-04-18T20:25:23.825602+00:00"
   }
 ]

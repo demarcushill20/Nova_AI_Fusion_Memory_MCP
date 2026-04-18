@@ -435,18 +435,20 @@ async def _run_roundtrip() -> Dict[str, Any]:
 
 
 def _assert_assoc_flags_all_false() -> None:
-    """Hard-fail the test if any ASSOC_* flag is currently True.
+    """Hard-fail the test if any *write-path* ASSOC_* flag is True.
 
-    This is the safety net against pinning a polluted baseline: if
-    a developer accidentally exports ASSOC_GRAPH_RECALL_ENABLED=true in
-    their shell before running the test, the baseline we capture would
-    include associative-linking behavior and silently lock it in.
+    Read-path flags that have been shipped (like ASSOC_GRAPH_RECALL_ENABLED,
+    flipped True 2026-04-16 after Phase 6 gate eval) are excluded — they are
+    force-disabled inside the test via monkeypatching so the zero-regression
+    baseline stays valid.
     """
+    shipped_flags = {"ASSOC_GRAPH_RECALL_ENABLED"}
     bad = [
-        name for name in ASSOC_FLAG_NAMES if getattr(settings, name) is not False
+        name for name in ASSOC_FLAG_NAMES
+        if name not in shipped_flags and getattr(settings, name) is not False
     ]
     assert not bad, (
-        "Zero-regression baseline refuses to run while any ASSOC_* flag "
+        "Zero-regression baseline refuses to run while any ASSOC_* write-path flag "
         f"is True. Offending flags: {bad}. Unset them and rerun."
     )
 
@@ -459,58 +461,64 @@ def _assert_assoc_flags_all_false() -> None:
 @pytest.mark.asyncio
 async def test_phase0_zero_regression_baseline() -> None:
     """Pin MemoryService upsert+query behavior under ASSOC_* all-False."""
-    _assert_assoc_flags_all_false()
+    # Force shipped read-path flags to False for zero-regression pinning.
+    _orig = settings.ASSOC_GRAPH_RECALL_ENABLED
+    settings.ASSOC_GRAPH_RECALL_ENABLED = False  # type: ignore[misc]
+    try:
+        _assert_assoc_flags_all_false()
 
-    trace = await _run_roundtrip()
+        trace = await _run_roundtrip()
 
-    # Basic sanity: we got the expected number of upserts and queries.
-    assert len(trace["upsert_trace"]) == 10, trace["upsert_trace"]
-    assert len(trace["query_trace"]) == 5, trace["query_trace"]
+        # Basic sanity: we got the expected number of upserts and queries.
+        assert len(trace["upsert_trace"]) == 10, trace["upsert_trace"]
+        assert len(trace["query_trace"]) == 5, trace["query_trace"]
 
-    # Every fixture round-tripped its caller-provided id back.
-    for entry in trace["upsert_trace"]:
-        assert entry["returned_id"] == entry["fixture_id"], entry
+        # Every fixture round-tripped its caller-provided id back.
+        for entry in trace["upsert_trace"]:
+            assert entry["returned_id"] == entry["fixture_id"], entry
 
-    canonical = _canonical_json(trace)
+        canonical = _canonical_json(trace)
 
-    if not BASELINE_PATH.exists():
-        # First run: write the baseline and pass. A second invocation of
-        # this test in the same process tree (or on CI) will then pin it.
-        BASELINE_PATH.write_text(canonical + "\n", encoding="utf-8")
-        pytest.skip(
-            f"Baseline did not exist; wrote fresh baseline to "
-            f"{BASELINE_PATH}. Re-run the test to pin it."
-        )
-
-    saved = BASELINE_PATH.read_text(encoding="utf-8").rstrip("\n")
-    current = canonical
-
-    if saved != current:
-        # Produce a compact diff-style error so a reviewer can see what
-        # drifted without having to re-run the test locally.
-        saved_lines = saved.splitlines()
-        current_lines = current.splitlines()
-        max_show = 40
-        diff_lines: List[str] = []
-        for i, (a, b) in enumerate(zip(saved_lines, current_lines)):
-            if a != b:
-                diff_lines.append(f"  line {i + 1}:")
-                diff_lines.append(f"    - {a}")
-                diff_lines.append(f"    + {b}")
-                if len(diff_lines) >= max_show:
-                    diff_lines.append("  ... (truncated)")
-                    break
-        if len(saved_lines) != len(current_lines):
-            diff_lines.append(
-                f"  length mismatch: saved={len(saved_lines)} "
-                f"current={len(current_lines)}"
+        if not BASELINE_PATH.exists():
+            # First run: write the baseline and pass. A second invocation of
+            # this test in the same process tree (or on CI) will then pin it.
+            BASELINE_PATH.write_text(canonical + "\n", encoding="utf-8")
+            pytest.skip(
+                f"Baseline did not exist; wrote fresh baseline to "
+                f"{BASELINE_PATH}. Re-run the test to pin it."
             )
-        raise AssertionError(
-            "Phase 0 zero-regression baseline drifted. If this is "
-            "intentional (e.g. you modified the fixture set), delete "
-            f"{BASELINE_PATH} and re-run to regenerate. Differences:\n"
-            + "\n".join(diff_lines)
-        )
+
+        saved = BASELINE_PATH.read_text(encoding="utf-8").rstrip("\n")
+        current = canonical
+
+        if saved != current:
+            # Produce a compact diff-style error so a reviewer can see what
+            # drifted without having to re-run the test locally.
+            saved_lines = saved.splitlines()
+            current_lines = current.splitlines()
+            max_show = 40
+            diff_lines: List[str] = []
+            for i, (a, b) in enumerate(zip(saved_lines, current_lines)):
+                if a != b:
+                    diff_lines.append(f"  line {i + 1}:")
+                    diff_lines.append(f"    - {a}")
+                    diff_lines.append(f"    + {b}")
+                    if len(diff_lines) >= max_show:
+                        diff_lines.append("  ... (truncated)")
+                        break
+            if len(saved_lines) != len(current_lines):
+                diff_lines.append(
+                    f"  length mismatch: saved={len(saved_lines)} "
+                    f"current={len(current_lines)}"
+                )
+            raise AssertionError(
+                "Phase 0 zero-regression baseline drifted. If this is "
+                "intentional (e.g. you modified the fixture set), delete "
+                f"{BASELINE_PATH} and re-run to regenerate. Differences:\n"
+                + "\n".join(diff_lines)
+            )
+    finally:
+        settings.ASSOC_GRAPH_RECALL_ENABLED = _orig  # type: ignore[misc]
 
 
 if __name__ == "__main__":  # pragma: no cover - local debugging helper

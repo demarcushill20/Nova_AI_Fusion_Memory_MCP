@@ -70,7 +70,13 @@ def _neighbor(node_id: str, edge_type: str = "SIMILAR_TO", weight: float = 0.8) 
 
 
 def _make_edge_service(neighbor_map: dict[str, list[dict]] | None = None) -> AsyncMock:
-    """Create a mock MemoryEdgeService with controllable get_neighbors."""
+    """Create a mock MemoryEdgeService with controllable get_neighbors.
+
+    MENTIONS edges are routed through ``get_memory_neighbors_via_mentions``
+    by :class:`AssociativeRecall`, so this mock splits them automatically:
+    ``get_neighbors`` only sees non-MENTIONS edges, while MENTIONS neighbors
+    are returned by ``get_memory_neighbors_via_mentions``.
+    """
     svc = AsyncMock()
     if neighbor_map is None:
         neighbor_map = {}
@@ -84,7 +90,14 @@ def _make_edge_service(neighbor_map: dict[str, list[dict]] | None = None) -> Asy
         neighbors = [n for n in neighbors if n["weight"] >= min_weight]
         return neighbors[:limit]
 
+    async def get_memory_neighbors_via_mentions(node_id: str, hub_threshold=50, limit=5, **kw):
+        """Return MENTIONS-type neighbors for the given node."""
+        neighbors = neighbor_map.get(node_id, [])
+        mentions = [n for n in neighbors if n["edge_type"] == "MENTIONS"]
+        return mentions[:limit]
+
     svc.get_neighbors = AsyncMock(side_effect=get_neighbors)
+    svc.get_memory_neighbors_via_mentions = AsyncMock(side_effect=get_memory_neighbors_via_mentions)
     return svc
 
 
@@ -278,14 +291,15 @@ async def test_expand_min_edge_weight_filter():
 
 @pytest.mark.asyncio
 async def test_expand_decay_scoring():
-    """Verify: hop1_score = seed_score * edge_weight * 0.7,
-    hop2_score = hop1_score * edge_weight * 0.7."""
+    """Verify: hop1_score = seed_score * edge_weight * DECAY_PER_HOP,
+    hop2_score = hop1_score * edge_weight * DECAY_PER_HOP."""
     neighbor_map = {
         "seed1": [_neighbor("hop1", "SIMILAR_TO", 0.8)],
         "hop1": [_neighbor("hop2", "SIMILAR_TO", 0.9)],
     }
     edge_svc = _make_edge_service(neighbor_map)
     recall = AssociativeRecall(edge_svc)
+    decay = recall.DECAY_PER_HOP  # 0.5 after session-2 tuning
 
     seed_score = 1.0
     seeds = [_seed("seed1", seed_score)]
@@ -294,13 +308,13 @@ async def test_expand_decay_scoring():
     expansion = {r["id"]: r for r in results if r.get("source") == "graph_expansion"}
 
     # Hop 1: seed_score * edge_weight * DECAY_PER_HOP
-    expected_hop1 = seed_score * 0.8 * 0.7
+    expected_hop1 = seed_score * 0.8 * decay
     assert "hop1" in expansion
     assert abs(expansion["hop1"]["expansion_score"] - expected_hop1) < 1e-9
     assert expansion["hop1"]["expansion_hop"] == 1
 
     # Hop 2: hop1_score * edge_weight * DECAY_PER_HOP
-    expected_hop2 = expected_hop1 * 0.9 * 0.7
+    expected_hop2 = expected_hop1 * 0.9 * decay
     assert "hop2" in expansion
     assert abs(expansion["hop2"]["expansion_score"] - expected_hop2) < 1e-9
     assert expansion["hop2"]["expansion_hop"] == 2
@@ -574,12 +588,16 @@ async def test_expand_unknown_intent_falls_back_to_general():
     expansion = [r for r in results if r.get("source") == "graph_expansion"]
     assert len(expansion) >= 1
 
-    # Verify edge_types passed matched general (aggregated across split calls)
+    # Verify edge_types passed to get_neighbors (MENTIONS is routed through
+    # get_memory_neighbors_via_mentions instead, so it won't appear here).
     all_edge_types = set()
     for call in edge_svc.get_neighbors.call_args_list:
         if call.kwargs.get("edge_types"):
             all_edge_types.update(call.kwargs["edge_types"])
-    assert all_edge_types == set(INTENT_EDGE_FILTER["general"])
+    general_non_mentions = {et for et in INTENT_EDGE_FILTER["general"] if et != "MENTIONS"}
+    assert all_edge_types == general_non_mentions
+    # MENTIONS handled via the entity-mediated helper
+    assert edge_svc.get_memory_neighbors_via_mentions.called
 
 
 # ---------------------------------------------------------------------------
@@ -603,7 +621,7 @@ async def test_expand_candidate_format():
     assert len(expansion) == 1
 
     candidate = expansion[0]
-    required_keys = {"id", "metadata", "score", "rrf_score", "source",
+    required_keys = {"id", "metadata", "score", "composite_score", "source",
                      "expansion_score", "expansion_hop", "expansion_edge_type"}
     assert required_keys <= set(candidate.keys())
     assert candidate["source"] == "graph_expansion"
@@ -767,11 +785,12 @@ async def test_perform_query_expand_graph_true_exception_fail_open():
 async def test_expand_duplicate_candidate_best_score_wins():
     """When two seeds reach the same neighbor, the higher-scoring path wins."""
     neighbor_map = {
-        "seed1": [_neighbor("shared_n", "SIMILAR_TO", 0.9)],  # decayed: 1.0 * 0.9 * 0.7 = 0.63
-        "seed2": [_neighbor("shared_n", "SIMILAR_TO", 0.6)],  # decayed: 0.5 * 0.6 * 0.7 = 0.21
+        "seed1": [_neighbor("shared_n", "SIMILAR_TO", 0.9)],
+        "seed2": [_neighbor("shared_n", "SIMILAR_TO", 0.6)],
     }
     edge_svc = _make_edge_service(neighbor_map)
     recall = AssociativeRecall(edge_svc)
+    decay = recall.DECAY_PER_HOP
 
     seeds = [_seed("seed1", 1.0), _seed("seed2", 0.5)]
     results = await recall.expand(seeds, intent="general")
@@ -779,8 +798,8 @@ async def test_expand_duplicate_candidate_best_score_wins():
     expansion = [r for r in results if r.get("source") == "graph_expansion"]
     assert len(expansion) == 1
     assert expansion[0]["id"] == "shared_n"
-    # Best path: seed1 -> shared_n with score 1.0 * 0.9 * 0.7 = 0.63
-    expected_score = 1.0 * 0.9 * 0.7
+    # Best path: seed1 -> shared_n
+    expected_score = 1.0 * 0.9 * decay
     assert abs(expansion[0]["expansion_score"] - expected_score) < 1e-9
 
 
@@ -800,11 +819,11 @@ async def test_expand_seeds_with_composite_score():
 
     seeds = [{"id": "seed1", "composite_score": 0.95, "metadata": {"text": "test"}}]
     results = await recall.expand(seeds, intent="general")
+    decay = recall.DECAY_PER_HOP
 
     expansion = [r for r in results if r.get("source") == "graph_expansion"]
     assert len(expansion) == 1
-    # Score should use composite_score: 0.95 * 0.8 * 0.7 = 0.532
-    expected = 0.95 * 0.8 * 0.7
+    expected = 0.95 * 0.8 * decay
     assert abs(expansion[0]["expansion_score"] - expected) < 1e-9
 
 

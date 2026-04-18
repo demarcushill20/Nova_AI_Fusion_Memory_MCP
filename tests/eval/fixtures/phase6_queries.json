@@ -298,5 +298,89 @@
     "query_text": "What is the Ship workflow (checkpoint, commit, push)?",
     "project": "nova-core",
     "bucket": "pattern"
+  },
+  {
+    "query_id": "nc-graph-entity-01",
+    "query_text": "How has the MCP ecosystem influenced NovaCore architecture decisions?",
+    "project": "nova-core",
+    "bucket": "entity"
+  },
+  {
+    "query_id": "nt-graph-entity-02",
+    "query_text": "What role does MetaAPI play in the NovaTrade live trading pipeline?",
+    "project": "novatrade",
+    "bucket": "entity"
+  },
+  {
+    "query_id": "nt-graph-entity-03",
+    "query_text": "What is the BarAggregator component and how does it interact with FeedHealthSupervisor?",
+    "project": "novatrade",
+    "bucket": "entity"
+  },
+  {
+    "query_id": "nc-graph-entity-04",
+    "query_text": "What evaluation frameworks were researched and how was DeepEval selected for NovaCore?",
+    "project": "nova-core",
+    "bucket": "entity"
+  },
+  {
+    "query_id": "nt-graph-entity-05",
+    "query_text": "How do DST (daylight saving time) transitions affect NovaTrade session scheduling and trading windows?",
+    "project": "novatrade",
+    "bucket": "entity"
+  },
+  {
+    "query_id": "nc-graph-temporal-01",
+    "query_text": "What was the sequence of foundational context established in the bootstrap-memory session?",
+    "project": "nova-core",
+    "bucket": "session"
+  },
+  {
+    "query_id": "nc-graph-temporal-02",
+    "query_text": "How did the CEO Nova persona design evolve from diagnosis to implementation plan?",
+    "project": "nova-core",
+    "bucket": "session"
+  },
+  {
+    "query_id": "nt-graph-temporal-03",
+    "query_text": "What research was conducted about FTMO rules, prop firm comparison, and ADX optimization in the April 1st deep research session?",
+    "project": "novatrade",
+    "bucket": "research"
+  },
+  {
+    "query_id": "nc-graph-temporal-04",
+    "query_text": "What RAG optimization research was done on chunking, deduplication, reranking, and cascading retrieval?",
+    "project": "nova-core",
+    "bucket": "research"
+  },
+  {
+    "query_id": "nt-graph-temporal-05",
+    "query_text": "What forex market microstructure, funded account survival, and execution optimization research was conducted in the April 5-6 sprint?",
+    "project": "novatrade",
+    "bucket": "research"
+  },
+  {
+    "query_id": "nc-graph-cross-01",
+    "query_text": "How do agent scheduling patterns relate to security hardening requirements for autonomous runtimes?",
+    "project": "nova-core",
+    "bucket": "architecture"
+  },
+  {
+    "query_id": "nc-graph-cross-02",
+    "query_text": "What connections exist between the Enhancement Plan versioning history and the MCP ecosystem research?",
+    "project": "nova-core",
+    "bucket": "research"
+  },
+  {
+    "query_id": "nt-graph-cross-03",
+    "query_text": "How does NovaTrade's IRB strategy configuration connect to FTMO challenge compliance requirements?",
+    "project": "novatrade",
+    "bucket": "decision"
+  },
+  {
+    "query_id": "nc-graph-cross-04",
+    "query_text": "How do the watcher.py task dispatcher and heartbeat.py observability module work together in the NovaCore runtime?",
+    "project": "nova-core",
+    "bucket": "architecture"
   }
 ]

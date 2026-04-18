@@ -308,18 +308,12 @@ class MemoryService:
                         results,
                         intent=intent or "general",
                     )
-                    # Sort by composite_score: this is the same key
-                    # _semantic_query already used to rank seeds, and
-                    # AssociativeRecall writes decayed scores into the
-                    # same field on expansion candidates so seeds and
-                    # expansion candidates are comparable. rrf_score
-                    # here would mix score domains and displace every
-                    # seed (Phase 6 eval, 2026-04-15).
-                    results.sort(
-                        key=lambda r: r.get("composite_score", r.get("rrf_score", 0.0)),
-                        reverse=True,
+                    # Rerank expansion candidates with cross-encoder so
+                    # they compete with seeds on query-relevance, not
+                    # graph-topology scores (PLAN-0759 follow-up 2).
+                    results = await self._rerank_expansion_candidates(
+                        query_text, results, top_k_final,
                     )
-                    results = results[:top_k_final]
             except Exception as exc:
                 logger.warning("Graph expansion failed (non-fatal): %s", exc)
 
@@ -353,6 +347,86 @@ class MemoryService:
                 return []
 
         return fetch
+
+    async def _rerank_expansion_candidates(
+        self,
+        query_text: str,
+        results: List[Dict[str, Any]],
+        top_k_final: int,
+    ) -> List[Dict[str, Any]]:
+        """Score expansion candidates with cross-encoder query relevance.
+
+        Seeds already carry ``composite_score`` from the semantic pipeline
+        (cross-encoder → temporal → composite). Expansion candidates from
+        :class:`AssociativeRecall` have graph-topology scores that don't
+        reflect query relevance, so they can displace relevant seeds.
+
+        This method runs the cross-encoder on expansion candidates, applies
+        temporal/composite scoring, then merges with seeds and sorts by
+        ``composite_score`` so both populations compete in the same domain.
+        """
+        seeds = [r for r in results if r.get("source") != "graph_expansion"]
+        expansion = [r for r in results if r.get("source") == "graph_expansion"]
+
+        if not expansion:
+            return seeds[:top_k_final]
+
+        # --- Cross-encoder scoring ---------------------------------------- #
+        if self.reranker:
+            try:
+                loaded = await self.reranker.ensure_loaded()
+                if loaded and self.reranker.model:
+                    pairs: List[Tuple[str, str]] = []
+                    valid_indices: List[int] = []
+                    for i, r in enumerate(expansion):
+                        text = r.get("text") or r.get("metadata", {}).get("text", "")
+                        if isinstance(text, str) and text.strip():
+                            pairs.append((query_text, text))
+                            valid_indices.append(i)
+
+                    if pairs:
+                        loop = asyncio.get_running_loop()
+                        t0 = loop.time()
+                        scores = await asyncio.to_thread(
+                            self.reranker.model.predict, pairs,
+                            show_progress_bar=False, batch_size=32,
+                        )
+                        ms = (loop.time() - t0) * 1000
+                        for j, score in enumerate(scores):
+                            expansion[valid_indices[j]]["rerank_score"] = float(score)
+                        logger.info(
+                            "EXPANSION_RERANK n=%d ms=%.0f",
+                            len(pairs), ms,
+                        )
+            except Exception as exc:
+                logger.debug(
+                    "Expansion cross-encoder rerank failed (non-fatal): %s", exc,
+                )
+
+        # --- Backfill un-scored candidates -------------------------------- #
+        # Candidates that were skipped (no text) or where the cross-encoder
+        # failed have no rerank_score. Without this backfill,
+        # _apply_temporal_scoring falls back to rrf_score default 0.5 which
+        # normalizes to 1.0 under RRF scoring (0.5/0.035), inflating them
+        # above seeds. Use their graph-decay expansion_score instead — a
+        # conservative value that keeps them at the bottom of the ranking.
+        for r in expansion:
+            if "rerank_score" not in r:
+                r["rerank_score"] = r.get("expansion_score", 0.0)
+        # Always use "rerank" normalization so all candidates go through
+        # the sigmoid path (bounded [0,1]) rather than the RRF path.
+        reranker_name = "rerank"
+
+        # --- Temporal / composite scoring --------------------------------- #
+        expansion = self._apply_temporal_scoring(expansion, reranker_name)
+
+        # --- Merge, sort, truncate ---------------------------------------- #
+        merged = seeds + expansion
+        merged.sort(
+            key=lambda r: r.get("composite_score", r.get("rrf_score", 0.0)),
+            reverse=True,
+        )
+        return merged[:top_k_final]
 
     @staticmethod
     def _tag_routing_mode(results: List[Dict[str, Any]], mode: RoutingMode) -> None:
@@ -1908,7 +1982,19 @@ class MemoryService:
                 reverse=True,
             )
 
-            results = raw_results[:n]
+            # Convert raw Pinecone ScoredVector objects to plain dicts.
+            # ScoredVector supports __getitem__ but is NOT a dict — its
+            # .setdefault is None, which crashes _tag_routing_mode and
+            # any other code that expects dict methods.
+            results = []
+            for r in raw_results[:n]:
+                meta = r.get("metadata", {})
+                results.append({
+                    "id": r.get("id", r.get("entity_id", "")),
+                    "score": r.get("score", 0.0),
+                    "metadata": dict(meta) if meta else {},
+                    "source": "pinecone_temporal",
+                })
             logger.info(
                 f"get_recent_events: returning {len(results)} of {len(raw_results)} "
                 f"fetched (requested n={n})"
