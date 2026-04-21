@@ -854,3 +854,169 @@ async def test_expand_mixed_edge_types_all_returned():
     assert "SIMILAR_TO" in expansion_types
     assert "MENTIONS" in expansion_types
     assert "MEMORY_FOLLOWS" in expansion_types
+
+
+# ---------------------------------------------------------------------------
+# Test: selective expansion — PATTERN routing mode skips expansion
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_perform_query_pattern_routing_skips_expansion():
+    """PATTERN routing mode skips graph expansion (PLAN-0759 session 4)."""
+    with patch("app.services.memory_service.settings") as mock_settings, \
+         patch("app.services.memory_service.get_embedding", return_value=[0.1] * 1536), \
+         patch("app.services.memory_service.extract_entities", return_value=[]):
+
+        mock_settings.EMBEDDING_MODEL = "text-embedding-3-small"
+        mock_settings.ASSOC_GRAPH_RECALL_ENABLED = True
+        mock_settings.TEMPORAL_DECAY_ENABLED = False
+        mock_settings.MMR_ENABLED = False
+        mock_settings.RERANKER_MODEL_NAME = None
+
+        from app.services.memory_service import MemoryService
+
+        svc = MemoryService()
+        svc._initialized = True
+
+        from app.services.query_router import RoutingMode
+        svc.query_router.route = MagicMock(return_value=RoutingMode.PATTERN)
+
+        seed_results = [_seed("r1", 1.0), _seed("r2", 0.8)]
+        svc._pattern_query = AsyncMock(return_value=seed_results)
+
+        # Pre-set a mock recall that should NOT be called
+        mock_recall = AsyncMock()
+        mock_recall.expand = AsyncMock(return_value=seed_results)
+        svc._associative_recall = mock_recall
+
+        results = await svc.perform_query("What pattern does X follow?", expand_graph=True)
+
+        # Expansion should NOT have been called
+        mock_recall.expand.assert_not_awaited()
+        assert len(results) == 2
+
+
+# ---------------------------------------------------------------------------
+# Test: selective expansion — TEMPORAL routing mode skips expansion
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_perform_query_temporal_routing_skips_expansion():
+    """TEMPORAL routing mode skips graph expansion (PLAN-0759 session 4)."""
+    with patch("app.services.memory_service.settings") as mock_settings, \
+         patch("app.services.memory_service.get_embedding", return_value=[0.1] * 1536), \
+         patch("app.services.memory_service.extract_entities", return_value=[]):
+
+        mock_settings.EMBEDDING_MODEL = "text-embedding-3-small"
+        mock_settings.ASSOC_GRAPH_RECALL_ENABLED = True
+        mock_settings.TEMPORAL_DECAY_ENABLED = False
+        mock_settings.MMR_ENABLED = False
+        mock_settings.RERANKER_MODEL_NAME = None
+
+        from app.services.memory_service import MemoryService
+
+        svc = MemoryService()
+        svc._initialized = True
+
+        from app.services.query_router import RoutingMode
+        svc.query_router.route = MagicMock(return_value=RoutingMode.TEMPORAL)
+
+        seed_results = [_seed("r1", 1.0)]
+        svc._temporal_query = AsyncMock(return_value=seed_results)
+
+        mock_recall = AsyncMock()
+        mock_recall.expand = AsyncMock(return_value=seed_results)
+        svc._associative_recall = mock_recall
+
+        results = await svc.perform_query("What happened recently?", expand_graph=True)
+
+        mock_recall.expand.assert_not_awaited()
+
+
+# ---------------------------------------------------------------------------
+# Test: _rerank_expansion_candidates CE threshold filtering
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_rerank_expansion_ce_threshold_filters_low_scores():
+    """Expansion candidates below CE threshold are removed (PLAN-0759 session 4)."""
+    with patch("app.services.memory_service.settings") as mock_settings:
+        mock_settings.EXPANSION_CE_THRESHOLD = 0.0
+        mock_settings.MAX_EXPANSION_RESULTS = 3
+        mock_settings.TEMPORAL_DECAY_ENABLED = False
+
+        from app.services.memory_service import MemoryService
+
+        svc = MemoryService()
+        svc._initialized = True
+
+        # Mock reranker to return specific scores
+        mock_reranker = MagicMock()
+        mock_reranker.ensure_loaded = AsyncMock(return_value=True)
+        mock_reranker.model = MagicMock()
+        # Two candidates: one relevant (score 3.0), one irrelevant (score -2.0)
+        mock_reranker.model.predict = MagicMock(return_value=[3.0, -2.0])
+        svc.reranker = mock_reranker
+
+        seeds = [
+            {"id": "s1", "composite_score": 0.9, "text": "seed one"},
+            {"id": "s2", "composite_score": 0.7, "text": "seed two"},
+        ]
+        expansion = [
+            {"id": "e1", "source": "graph_expansion", "expansion_score": 0.4,
+             "text": "relevant expansion", "metadata": {}},
+            {"id": "e2", "source": "graph_expansion", "expansion_score": 0.4,
+             "text": "irrelevant expansion", "metadata": {}},
+        ]
+
+        results = await svc._rerank_expansion_candidates(
+            "test query", seeds + expansion, top_k_final=10
+        )
+
+        # Only e1 should survive (CE score 3.0 >= 0.0), e2 filtered (score -2.0 < 0.0)
+        exp_in_result = [r for r in results if r.get("source") == "graph_expansion"]
+        assert len(exp_in_result) == 1
+        assert exp_in_result[0]["id"] == "e1"
+
+
+# ---------------------------------------------------------------------------
+# Test: _rerank_expansion_candidates caps at MAX_EXPANSION_RESULTS
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_rerank_expansion_cap_limits_candidates():
+    """At most MAX_EXPANSION_RESULTS expansion candidates survive (PLAN-0759 session 4)."""
+    with patch("app.services.memory_service.settings") as mock_settings:
+        mock_settings.EXPANSION_CE_THRESHOLD = -10.0  # Accept all
+        mock_settings.MAX_EXPANSION_RESULTS = 2
+        mock_settings.TEMPORAL_DECAY_ENABLED = False
+
+        from app.services.memory_service import MemoryService
+
+        svc = MemoryService()
+        svc._initialized = True
+
+        # Mock reranker to give all good scores
+        mock_reranker = MagicMock()
+        mock_reranker.ensure_loaded = AsyncMock(return_value=True)
+        mock_reranker.model = MagicMock()
+        mock_reranker.model.predict = MagicMock(return_value=[5.0, 4.0, 3.0, 2.0])
+        svc.reranker = mock_reranker
+
+        seeds = [{"id": "s1", "composite_score": 0.9, "text": "seed"}]
+        expansion = [
+            {"id": f"e{i}", "source": "graph_expansion", "expansion_score": 0.3,
+             "text": f"expansion {i}", "metadata": {}}
+            for i in range(4)
+        ]
+
+        results = await svc._rerank_expansion_candidates(
+            "test query", seeds + expansion, top_k_final=10
+        )
+
+        exp_in_result = [r for r in results if r.get("source") == "graph_expansion"]
+        assert len(exp_in_result) <= 2

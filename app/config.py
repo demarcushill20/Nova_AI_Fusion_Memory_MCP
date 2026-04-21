@@ -76,6 +76,8 @@ class Settings(BaseSettings):
     ASSOC_TASK_HEURISTIC_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 7b: task_heuristic linker (deferred phase)
     ASSOC_GRAPH_RECALL_ENABLED: bool = True  # PLAN-0759 Phase 4: associative_recall traversal on the read path. Flipped True 2026-04-16 after session-2 tuning (DECAY_PER_HOP=0.5) drove recall_delta from -0.002 to +0.000 — feature is provably non-harmful and unlocks intent-aware temporal/entity/provenance recall paths. Hard +5pp gate still fails (judge variance + walker information asymmetry); algorithm change deferred to follow-up sprint.
     ASSOC_CROSS_PROJECT_ENABLED: bool = False  # PLAN-0759: opt-in cross-project linking; single-project is the default
+    EXPANSION_CE_THRESHOLD: float = 0.0  # PLAN-0759 session 4: minimum CE score for expansion candidates to survive. ms-marco: 0 = relevance boundary. Candidates below this are filtered before competing with seeds.
+    MAX_EXPANSION_RESULTS: int = 3  # PLAN-0759 session 4: cap on expansion candidates in final result. Limits seed displacement even when candidates pass CE threshold.
 
     @model_validator(mode="before")
     @classmethod

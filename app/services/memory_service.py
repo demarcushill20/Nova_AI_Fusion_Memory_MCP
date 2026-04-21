@@ -291,8 +291,12 @@ class MemoryService:
             results = await self._semantic_query(query_text, top_k_vector, top_k_final)
             self._tag_routing_mode(results, routing_mode)
 
-        # Phase 6 (PLAN-0759): Graph-expanded recall
-        if expand_graph and settings.ASSOC_GRAPH_RECALL_ENABLED:
+        # Phase 6 (PLAN-0759): Graph-expanded recall — selective expansion.
+        # Skip modes where expansion demonstrably hurts recall/MRR (PLAN-0759
+        # session 4 analysis: PATTERN -0.40 recall, TEMPORAL no benefit).
+        _EXPANSION_SKIP_MODES = frozenset({RoutingMode.PATTERN, RoutingMode.TEMPORAL})
+        if (expand_graph and settings.ASSOC_GRAPH_RECALL_ENABLED
+                and routing_mode not in _EXPANSION_SKIP_MODES):
             try:
                 if self._associative_recall is None:
                     if self.graph_client.driver is None:
@@ -372,6 +376,7 @@ class MemoryService:
             return seeds[:top_k_final]
 
         # --- Cross-encoder scoring ---------------------------------------- #
+        ce_scored: set = set()  # indices of CE-scored candidates
         if self.reranker:
             try:
                 loaded = await self.reranker.ensure_loaded()
@@ -394,6 +399,7 @@ class MemoryService:
                         ms = (loop.time() - t0) * 1000
                         for j, score in enumerate(scores):
                             expansion[valid_indices[j]]["rerank_score"] = float(score)
+                            ce_scored.add(valid_indices[j])
                         logger.info(
                             "EXPANSION_RERANK n=%d ms=%.0f",
                             len(pairs), ms,
@@ -403,22 +409,50 @@ class MemoryService:
                     "Expansion cross-encoder rerank failed (non-fatal): %s", exc,
                 )
 
-        # --- Backfill un-scored candidates -------------------------------- #
-        # Candidates that were skipped (no text) or where the cross-encoder
-        # failed have no rerank_score. Without this backfill,
-        # _apply_temporal_scoring falls back to rrf_score default 0.5 which
-        # normalizes to 1.0 under RRF scoring (0.5/0.035), inflating them
-        # above seeds. Use their graph-decay expansion_score instead — a
-        # conservative value that keeps them at the bottom of the ranking.
-        for r in expansion:
-            if "rerank_score" not in r:
+        # --- Filter by CE relevance threshold ----------------------------- #
+        # Only keep expansion candidates the cross-encoder considers at
+        # least marginally relevant.  ms-marco scores: 0 = relevance
+        # boundary, positive = likely relevant.  Candidates below the
+        # threshold are discarded before they can displace seeds.
+        # Un-scored candidates (no text or CE failure) are backfilled with
+        # their graph-decay expansion_score and kept — they'll score
+        # conservatively through the sigmoid path.
+        ce_threshold = getattr(settings, "EXPANSION_CE_THRESHOLD", 0.0)
+        filtered: List[Dict[str, Any]] = []
+        n_filtered = 0
+        for i, r in enumerate(expansion):
+            if i in ce_scored:
+                if r.get("rerank_score", -10.0) >= ce_threshold:
+                    filtered.append(r)
+                else:
+                    n_filtered += 1
+            else:
+                # Backfill un-scored with conservative graph-decay score
                 r["rerank_score"] = r.get("expansion_score", 0.0)
+                filtered.append(r)
+        expansion = filtered
+        if n_filtered:
+            logger.info("EXPANSION_CE_FILTER dropped=%d threshold=%.1f", n_filtered, ce_threshold)
+
+        if not expansion:
+            return seeds[:top_k_final]
+
         # Always use "rerank" normalization so all candidates go through
         # the sigmoid path (bounded [0,1]) rather than the RRF path.
         reranker_name = "rerank"
 
         # --- Temporal / composite scoring --------------------------------- #
         expansion = self._apply_temporal_scoring(expansion, reranker_name)
+
+        # --- Cap expansion candidates ------------------------------------- #
+        # Limit how many expansion candidates compete with seeds to bound
+        # seed displacement risk (PLAN-0759 session 4).
+        max_expansion = getattr(settings, "MAX_EXPANSION_RESULTS", 3)
+        expansion.sort(
+            key=lambda r: r.get("composite_score", r.get("rerank_score", 0.0)),
+            reverse=True,
+        )
+        expansion = expansion[:max_expansion]
 
         # --- Merge, sort, truncate ---------------------------------------- #
         merged = seeds + expansion

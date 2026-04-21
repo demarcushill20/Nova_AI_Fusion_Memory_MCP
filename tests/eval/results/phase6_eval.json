@@ -1,11 +1,11 @@
 {
   "baseline_aggregate": {
-    "mrr": 0.8438988095238096,
-    "recall_at_k": 0.55625
+    "mrr": 0.7947916666666668,
+    "recall_at_k": 0.50625
   },
   "expanded_aggregate": {
-    "mrr": 0.8776041666666667,
-    "recall_at_k": 0.5421875
+    "mrr": 0.7916666666666667,
+    "recall_at_k": 0.4921875
   },
   "gate_passed": false,
   "gate_rule": "recall_delta >= 0.05 OR mrr_delta >= 0.05",
@@ -15,20 +15,20 @@
     "model": "claude-opus-4-6"
   },
   "k": 10,
-  "mrr_delta": 0.03370535714285715,
+  "mrr_delta": -0.003125000000000002,
   "num_compared": 64,
   "num_queries": 64,
   "per_query": [
     {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.8,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.7,
+      "baseline_mrr": 0.5,
+      "baseline_recall_at_k": 0.7,
+      "expanded_mrr": 0.5,
+      "expanded_recall_at_k": 0.6,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-decision-01",
       "query_text": "What architecture did NovaCore Phase 7 adopt for multi-agent coordination?",
-      "recall_delta": -0.10000000000000009
+      "recall_delta": -0.09999999999999998
     },
     {
       "baseline_mrr": 1.0,
@@ -56,89 +56,89 @@
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.3,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.3,
+      "expanded_recall_at_k": 0.1,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-decision-04",
       "query_text": "How does the CEO Nova persona speak and what is its identity?",
-      "recall_delta": 0.0
+      "recall_delta": -0.19999999999999998
     },
     {
       "baseline_mrr": 0.5,
       "baseline_recall_at_k": 0.6,
       "expanded_mrr": 0.5,
-      "expanded_recall_at_k": 0.6,
+      "expanded_recall_at_k": 0.7,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-decision-05",
       "query_text": "What is the validated NovaTrade baseline strategy and when was it locked?",
-      "recall_delta": 0.0
+      "recall_delta": 0.09999999999999998
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.2,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.5,
+      "expanded_recall_at_k": 0.4,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-decision-06",
       "query_text": "What does Nova-Core Enhancement Plan v98 change compared to earlier versions?",
-      "recall_delta": 0.3
+      "recall_delta": 0.2
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.6,
+      "baseline_recall_at_k": 0.5,
       "expanded_mrr": 1.0,
       "expanded_recall_at_k": 0.6,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-arch-01",
       "query_text": "How is the Intelligent Dynamic Block Scheduler implemented and what does it replace?",
+      "recall_delta": 0.09999999999999998
+    },
+    {
+      "baseline_mrr": 1.0,
+      "baseline_recall_at_k": 0.3,
+      "expanded_mrr": 1.0,
+      "expanded_recall_at_k": 0.5,
+      "mrr_delta": 0.0,
+      "project": "nova-core",
+      "query_id": "nc-arch-02",
+      "query_text": "What cognitive architectures were researched for autonomous AI agent runtimes?",
+      "recall_delta": 0.2
+    },
+    {
+      "baseline_mrr": 1.0,
+      "baseline_recall_at_k": 1.0,
+      "expanded_mrr": 1.0,
+      "expanded_recall_at_k": 1.0,
+      "mrr_delta": 0.0,
+      "project": "nova-core",
+      "query_id": "nc-arch-03",
+      "query_text": "Which MCP servers are top priority for nova-core per the ecosystem survey?",
+      "recall_delta": 0.0
+    },
+    {
+      "baseline_mrr": 1.0,
+      "baseline_recall_at_k": 0.2,
+      "expanded_mrr": 1.0,
+      "expanded_recall_at_k": 0.2,
+      "mrr_delta": 0.0,
+      "project": "nova-core",
+      "query_id": "nc-arch-04",
+      "query_text": "How does associative linking work in NovaCore Memory?",
       "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.6,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.6,
-      "mrr_delta": 0.0,
-      "project": "nova-core",
-      "query_id": "nc-arch-02",
-      "query_text": "What cognitive architectures were researched for autonomous AI agent runtimes?",
-      "recall_delta": 0.0
-    },
-    {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 1.0,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.9,
-      "mrr_delta": 0.0,
-      "project": "nova-core",
-      "query_id": "nc-arch-03",
-      "query_text": "Which MCP servers are top priority for nova-core per the ecosystem survey?",
-      "recall_delta": -0.09999999999999998
-    },
-    {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.2,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.3,
-      "mrr_delta": 0.0,
-      "project": "nova-core",
-      "query_id": "nc-arch-04",
-      "query_text": "How does associative linking work in NovaCore Memory?",
-      "recall_delta": 0.09999999999999998
-    },
-    {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.5,
-      "expanded_mrr": 0.5,
       "expanded_recall_at_k": 0.5,
-      "mrr_delta": -0.5,
+      "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-arch-05",
       "query_text": "What is the Fusion Memory chronological upgrade plan?",
-      "recall_delta": 0.0
+      "recall_delta": -0.09999999999999998
     },
     {
       "baseline_mrr": 0.3333333333333333,
@@ -164,31 +164,31 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.6,
+      "baseline_recall_at_k": 0.4,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.4,
+      "expanded_recall_at_k": 0.6,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-debug-02",
       "query_text": "How was the LotSizeConsistencyChecker 10x median violation bug resolved?",
-      "recall_delta": -0.19999999999999996
+      "recall_delta": 0.19999999999999996
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 1.0,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 1.0,
+      "expanded_recall_at_k": 0.9,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-debug-03",
       "query_text": "What broker reconciliation bug was fixed in LiveLoop and how?",
-      "recall_delta": 0.0
+      "recall_delta": -0.09999999999999998
     },
     {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.2,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.2,
+      "baseline_mrr": 0.0,
+      "baseline_recall_at_k": 0.0,
+      "expanded_mrr": 0.0,
+      "expanded_recall_at_k": 0.0,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-debug-04",
@@ -219,25 +219,25 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.4,
+      "baseline_recall_at_k": 0.3,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.4,
+      "expanded_recall_at_k": 0.2,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-research-03",
       "query_text": "What prompt caching strategies were recommended for Claude API apps?",
-      "recall_delta": 0.0
+      "recall_delta": -0.09999999999999998
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 1.0,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.9,
+      "expanded_recall_at_k": 1.0,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-entity-01",
       "query_text": "What do we know about HardRiskSupervisor?",
-      "recall_delta": -0.09999999999999998
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
@@ -252,10 +252,10 @@
     },
     {
       "baseline_mrr": 0.5,
-      "baseline_recall_at_k": 0.3,
-      "expanded_mrr": 0.5,
-      "expanded_recall_at_k": 0.3,
-      "mrr_delta": 0.0,
+      "baseline_recall_at_k": 0.4,
+      "expanded_mrr": 0.3333333333333333,
+      "expanded_recall_at_k": 0.4,
+      "mrr_delta": -0.16666666666666669,
       "project": "nova-core",
       "query_id": "nc-entity-03",
       "query_text": "What is the purpose of memory_router.py in Fusion Memory?",
@@ -264,35 +264,35 @@
     {
       "baseline_mrr": 0.3333333333333333,
       "baseline_recall_at_k": 0.2,
-      "expanded_mrr": 0.0,
-      "expanded_recall_at_k": 0.0,
-      "mrr_delta": -0.3333333333333333,
+      "expanded_mrr": 0.3333333333333333,
+      "expanded_recall_at_k": 0.2,
+      "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-entity-04",
       "query_text": "What do the implementation-team skill and Chief Orchestrator pattern do?",
-      "recall_delta": -0.2
-    },
-    {
-      "baseline_mrr": 0.14285714285714285,
-      "baseline_recall_at_k": 0.3,
-      "expanded_mrr": 0.0,
-      "expanded_recall_at_k": 0.0,
-      "mrr_delta": -0.14285714285714285,
-      "project": "nova-core",
-      "query_id": "nc-session-01",
-      "query_text": "What was done in session checkpoint session-2026-04-11-3?",
-      "recall_delta": -0.3
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 0.0,
       "baseline_recall_at_k": 0.0,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.1,
-      "mrr_delta": 1.0,
+      "expanded_mrr": 0.0,
+      "expanded_recall_at_k": 0.0,
+      "mrr_delta": 0.0,
+      "project": "nova-core",
+      "query_id": "nc-session-01",
+      "query_text": "What was done in session checkpoint session-2026-04-11-3?",
+      "recall_delta": 0.0
+    },
+    {
+      "baseline_mrr": 0.0,
+      "baseline_recall_at_k": 0.0,
+      "expanded_mrr": 0.0,
+      "expanded_recall_at_k": 0.0,
+      "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-session-02",
       "query_text": "What was done in session checkpoint scheduler-impl-20260329?",
-      "recall_delta": 0.1
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
@@ -307,9 +307,9 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.6,
+      "baseline_recall_at_k": 0.3,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.6,
+      "expanded_recall_at_k": 0.3,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-decision-01",
@@ -352,24 +352,24 @@
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.9,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.9,
-      "mrr_delta": 0.0,
+      "expanded_mrr": 0.5,
+      "expanded_recall_at_k": 0.7,
+      "mrr_delta": -0.5,
       "project": "novatrade",
       "query_id": "nt-decision-05",
       "query_text": "What is the FTMO MetaAPI setup and how is the connection configured?",
-      "recall_delta": 0.0
+      "recall_delta": -0.20000000000000007
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.7,
+      "baseline_recall_at_k": 0.5,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.7,
+      "expanded_recall_at_k": 0.4,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-arch-01",
       "query_text": "How does the NovaTrade live loop coordinate entry and exit decisions?",
-      "recall_delta": 0.0
+      "recall_delta": -0.09999999999999998
     },
     {
       "baseline_mrr": 1.0,
@@ -383,11 +383,11 @@
       "recall_delta": 0.0
     },
     {
-      "baseline_mrr": 0.5,
-      "baseline_recall_at_k": 0.3,
-      "expanded_mrr": 0.3333333333333333,
-      "expanded_recall_at_k": 0.3,
-      "mrr_delta": -0.16666666666666669,
+      "baseline_mrr": 0.25,
+      "baseline_recall_at_k": 0.2,
+      "expanded_mrr": 0.25,
+      "expanded_recall_at_k": 0.2,
+      "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-arch-03",
       "query_text": "How does the session watchdog detect and recover from feed disconnections?",
@@ -395,14 +395,14 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 1.0,
+      "baseline_recall_at_k": 0.7,
       "expanded_mrr": 1.0,
       "expanded_recall_at_k": 0.9,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-arch-04",
       "query_text": "How does the trade gap monitor work?",
-      "recall_delta": -0.09999999999999998
+      "recall_delta": 0.20000000000000007
     },
     {
       "baseline_mrr": 1.0,
@@ -419,56 +419,56 @@
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.2,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.3,
+      "expanded_recall_at_k": 0.2,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-debug-02",
       "query_text": "What was the root cause of the transaction cost deduction bug in backtesting?",
-      "recall_delta": 0.09999999999999998
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.8,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 1.0,
+      "expanded_recall_at_k": 0.8,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-debug-03",
       "query_text": "Why was the MetaAPI connection repeatedly failing and how was it fixed?",
-      "recall_delta": 0.19999999999999996
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.3,
+      "baseline_recall_at_k": 0.2,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.3,
+      "expanded_recall_at_k": 0.4,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-research-01",
       "query_text": "What happens to EURUSD spreads at Sunday market reopen?",
-      "recall_delta": 0.0
+      "recall_delta": 0.2
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.1,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.2,
+      "expanded_recall_at_k": 0.1,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-research-02",
       "query_text": "What does the research say about Sunday open gaps and fill rates?",
-      "recall_delta": 0.1
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.4,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.3,
+      "expanded_recall_at_k": 0.2,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-research-03",
       "query_text": "What are the backtest results for IRB v5 on EURUSD over 10 years?",
-      "recall_delta": -0.10000000000000003
+      "recall_delta": -0.2
     },
     {
       "baseline_mrr": 1.0,
@@ -483,9 +483,9 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.6,
+      "baseline_recall_at_k": 0.5,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.7,
+      "expanded_recall_at_k": 0.6,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-entity-02",
@@ -494,25 +494,36 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.8,
+      "baseline_recall_at_k": 0.6,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.6,
+      "expanded_recall_at_k": 0.5,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-entity-03",
       "query_text": "What does trading_agent.py do in the novatrade execution pipeline?",
-      "recall_delta": -0.20000000000000007
+      "recall_delta": -0.09999999999999998
+    },
+    {
+      "baseline_mrr": 0.5,
+      "baseline_recall_at_k": 0.4,
+      "expanded_mrr": 0.3333333333333333,
+      "expanded_recall_at_k": 0.2,
+      "mrr_delta": -0.16666666666666669,
+      "project": "novatrade",
+      "query_id": "nt-monitoring-01",
+      "query_text": "What was the NovaTrade live pipeline status on 2026-04-06?",
+      "recall_delta": -0.2
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 0.5,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.4,
+      "expanded_recall_at_k": 0.5,
       "mrr_delta": 0.0,
       "project": "novatrade",
-      "query_id": "nt-monitoring-01",
-      "query_text": "What was the NovaTrade live pipeline status on 2026-04-06?",
-      "recall_delta": -0.09999999999999998
+      "query_id": "nt-monitoring-02",
+      "query_text": "How is the NovaTrade North Star defined and what are the SMART goals?",
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
@@ -520,21 +531,10 @@
       "expanded_mrr": 1.0,
       "expanded_recall_at_k": 0.5,
       "mrr_delta": 0.0,
-      "project": "novatrade",
-      "query_id": "nt-monitoring-02",
-      "query_text": "How is the NovaTrade North Star defined and what are the SMART goals?",
-      "recall_delta": -0.09999999999999998
-    },
-    {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.5,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.1,
-      "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-pattern-01",
       "query_text": "What pattern does the Chief Orchestrator follow for non-trivial tasks?",
-      "recall_delta": -0.4
+      "recall_delta": -0.09999999999999998
     },
     {
       "baseline_mrr": 0.2,
@@ -548,15 +548,15 @@
       "recall_delta": -0.1
     },
     {
-      "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.4,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.5,
+      "baseline_mrr": 0.25,
+      "baseline_recall_at_k": 0.3,
+      "expanded_mrr": 0.25,
+      "expanded_recall_at_k": 0.3,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-pattern-03",
       "query_text": "How should workflow learnings be captured in the Obsidian vault?",
-      "recall_delta": 0.09999999999999998
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 0.0,
@@ -571,36 +571,36 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.8,
+      "baseline_recall_at_k": 0.7,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 1.0,
+      "expanded_recall_at_k": 0.8,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-graph-entity-01",
       "query_text": "How has the MCP ecosystem influenced NovaCore architecture decisions?",
-      "recall_delta": 0.19999999999999996
+      "recall_delta": 0.10000000000000009
     },
     {
       "baseline_mrr": 0.5,
-      "baseline_recall_at_k": 0.9,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 1.0,
-      "mrr_delta": 0.5,
+      "baseline_recall_at_k": 0.8,
+      "expanded_mrr": 0.3333333333333333,
+      "expanded_recall_at_k": 0.6,
+      "mrr_delta": -0.16666666666666669,
       "project": "novatrade",
       "query_id": "nt-graph-entity-02",
       "query_text": "What role does MetaAPI play in the NovaTrade live trading pipeline?",
-      "recall_delta": 0.09999999999999998
+      "recall_delta": -0.20000000000000007
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 1.0,
+      "baseline_recall_at_k": 0.9,
       "expanded_mrr": 1.0,
       "expanded_recall_at_k": 0.9,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-graph-entity-03",
       "query_text": "What is the BarAggregator component and how does it interact with FeedHealthSupervisor?",
-      "recall_delta": -0.09999999999999998
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
@@ -617,12 +617,12 @@
       "baseline_mrr": 0.0,
       "baseline_recall_at_k": 0.0,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.6,
+      "expanded_recall_at_k": 0.1,
       "mrr_delta": 1.0,
       "project": "novatrade",
       "query_id": "nt-graph-entity-05",
       "query_text": "How do DST (daylight saving time) transitions affect NovaTrade session scheduling and trading windows?",
-      "recall_delta": 0.6
+      "recall_delta": 0.1
     },
     {
       "baseline_mrr": 0.0,
@@ -637,25 +637,25 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.7,
+      "baseline_recall_at_k": 0.6,
       "expanded_mrr": 1.0,
       "expanded_recall_at_k": 0.6,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-graph-temporal-02",
       "query_text": "How did the CEO Nova persona design evolve from diagnosis to implementation plan?",
-      "recall_delta": -0.09999999999999998
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 0.0,
       "baseline_recall_at_k": 0.0,
-      "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.1,
-      "mrr_delta": 1.0,
+      "expanded_mrr": 0.0,
+      "expanded_recall_at_k": 0.0,
+      "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-graph-temporal-03",
       "query_text": "What research was conducted about FTMO rules, prop firm comparison, and ADX optimization in the April 1st deep research session?",
-      "recall_delta": 0.1
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
@@ -670,25 +670,25 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 0.8,
+      "baseline_recall_at_k": 0.7,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 0.5,
+      "expanded_recall_at_k": 0.7,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-graph-temporal-05",
       "query_text": "What forex market microstructure, funded account survival, and execution optimization research was conducted in the April 5-6 sprint?",
-      "recall_delta": -0.30000000000000004
+      "recall_delta": 0.0
     },
     {
       "baseline_mrr": 1.0,
       "baseline_recall_at_k": 1.0,
       "expanded_mrr": 1.0,
-      "expanded_recall_at_k": 1.0,
+      "expanded_recall_at_k": 0.7,
       "mrr_delta": 0.0,
       "project": "nova-core",
       "query_id": "nc-graph-cross-01",
       "query_text": "How do agent scheduling patterns relate to security hardening requirements for autonomous runtimes?",
-      "recall_delta": 0.0
+      "recall_delta": -0.30000000000000004
     },
     {
       "baseline_mrr": 1.0,
@@ -703,14 +703,14 @@
     },
     {
       "baseline_mrr": 1.0,
-      "baseline_recall_at_k": 1.0,
+      "baseline_recall_at_k": 0.9,
       "expanded_mrr": 1.0,
       "expanded_recall_at_k": 1.0,
       "mrr_delta": 0.0,
       "project": "novatrade",
       "query_id": "nt-graph-cross-03",
       "query_text": "How does NovaTrade's IRB strategy configuration connect to FTMO challenge compliance requirements?",
-      "recall_delta": 0.0
+      "recall_delta": 0.09999999999999998
     },
     {
       "baseline_mrr": 1.0,
@@ -726,11 +726,11 @@
   ],
   "phase": 6,
   "plan_id": "PLAN-0759-assoc-linking",
-  "recall_delta": -0.014062499999999995,
+  "recall_delta": -0.014062500000000002,
   "run_id": "phase6-eval-2026-04-15",
   "skipped_query_ids": {
     "only_after": [],
     "only_before": []
   },
-  "timestamp": "2026-04-20T04:09:42.261629+00:00"
+  "timestamp": "2026-04-20T19:40:37.027107+00:00"
 }
