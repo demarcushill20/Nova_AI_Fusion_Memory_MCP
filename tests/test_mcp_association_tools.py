@@ -675,7 +675,12 @@ class TestGetProvenance:
         assert result["chain_count"] <= 30
         assert result["full_chain_count"] == 40
         assert result["truncated"] is True
-        assert result["original_sources"] == ["anc-39"]
+        # When truncated, original_sources is filtered to ids present in
+        # the truncated chain — anc-39 is beyond the 30-node cap, so it
+        # is dropped to avoid dangling refs.
+        chain_ids = {hop["memory_id"] for hop in result["provenance_chain"]}
+        assert all(s in chain_ids for s in result["original_sources"])
+        assert "anc-39" not in result["original_sources"]
 
     @pytest.mark.asyncio
     async def test_invalid_memory_id(self):

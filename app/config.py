@@ -71,7 +71,7 @@ class Settings(BaseSettings):
     ASSOC_SIMILARITY_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 1: similarity_linker writes (:base)-[:SIMILAR_TO]->(:base)
     ASSOC_ENTITY_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 2: entity_linker writes shared-entity edges
     ASSOC_TEMPORAL_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 3: temporal_linker writes MEMORY_FOLLOWS adjacency edges
-    ASSOC_PROVENANCE_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 5a/5b/5c/5d: provenance edges (source/derivation tracking)
+    ASSOC_PROVENANCE_WRITE_ENABLED: bool = True  # PLAN-0759 Phase 5a/5b/5c/5d: provenance edges (source/derivation tracking). Flipped True 2026-04-21 after Sprints 12-15 closed with 0 CRITICAL/HIGH findings, 290 tests green, and live Neo4j at 0 edges for SUPERSEDES/PROMOTED_FROM/COMPACTED_FROM. Hooks fire only when metadata carries the internal signal keys (`_promoted_from` / `_compacted_from`) or when conflict_detector emits a supersession event — no behavior change for callers that don't opt in.
     ASSOC_COOCCURRENCE_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 6: cooccurrence linker (session/window co-mention)
     ASSOC_TASK_HEURISTIC_WRITE_ENABLED: bool = False  # PLAN-0759 Phase 7b: task_heuristic linker (deferred phase)
     ASSOC_GRAPH_RECALL_ENABLED: bool = True  # PLAN-0759 Phase 4: associative_recall traversal on the read path. Flipped True 2026-04-16 after session-2 tuning (DECAY_PER_HOP=0.5) drove recall_delta from -0.002 to +0.000 — feature is provably non-harmful and unlocks intent-aware temporal/entity/provenance recall paths. Hard +5pp gate still fails (judge variance + walker information asymmetry); algorithm change deferred to follow-up sprint.

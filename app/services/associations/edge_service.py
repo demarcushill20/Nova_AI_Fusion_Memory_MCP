@@ -737,7 +737,10 @@ class MemoryEdgeService:
             provided, stored in ``edge.metadata["reason"]``.
         run_id:
             Caller-supplied run identifier. Defaults to
-            ``"supersession_hook"`` when not provided.
+            ``"wt-supersede-direct"`` when not provided — the
+            ``wt-supersede-*`` prefix is the linker-convention that makes
+            every SUPERSEDES edge (hook-emitted or direct) addressable by
+            rollback-by-prefix tooling.
         """
         if not isinstance(new_id, str) or not new_id:
             raise ValueError(f"new_id must be a non-empty string, got {new_id!r}")
@@ -758,7 +761,7 @@ class MemoryEdgeService:
             created_at=now_iso,
             last_seen_at=now_iso,
             created_by="edge_service.on_memory_supersede",
-            run_id="supersession_hook" if run_id is None else run_id,
+            run_id="wt-supersede-direct" if run_id is None else run_id,
             metadata=edge_metadata,
         )
         await self.create_edge(edge)
@@ -846,6 +849,7 @@ class MemoryEdgeService:
         source_ids: list[str],
         *,
         run_id: str | None = None,
+        metadata: dict | None = None,
     ) -> int:
         """Record ``COMPACTED_FROM`` edges from ``summary_id`` to each source.
 
@@ -868,6 +872,13 @@ class MemoryEdgeService:
         run_id:
             Optional caller-supplied run identifier. When ``None``,
             defaults to ``"compaction_hook"``.
+        metadata:
+            Optional attribution dict (e.g. ``{"algorithm": "thin-group",
+            "reason": "..."}``) attached to every ``COMPACTED_FROM`` edge
+            created by this call. When ``None``, each ``MemoryEdge`` ends
+            up with ``metadata=None`` — preserving backwards compatibility
+            with the pre-metadata signature used by Phase 5c's ten
+            foundational tests.
 
         Returns
         -------
@@ -910,6 +921,7 @@ class MemoryEdgeService:
                     last_seen_at=now_iso,
                     created_by="edge_service.on_memory_compact",
                     run_id=effective_run_id,
+                    metadata=metadata,
                 )
                 if await self.create_edge(edge):
                     created += 1
@@ -937,6 +949,32 @@ class MemoryEdgeService:
         t in VALID_EDGE_TYPES for t in _PROVENANCE_EDGE_TYPES
     ), "_PROVENANCE_EDGE_TYPES must be a subset of VALID_EDGE_TYPES"
 
+    async def node_exists(self, memory_id: str) -> bool:
+        """Return ``True`` if a ``:base`` node with the given ``entity_id`` exists.
+
+        Lightweight existence check used by the MCP ``get_provenance`` tool to
+        distinguish "node not in graph" from "node exists but has no
+        provenance edges". Returns ``False`` for empty/None input rather than
+        raising, so callers can pass through unvalidated ids cheaply.
+        """
+        if not isinstance(memory_id, str):
+            return False
+        memory_id = memory_id.strip()
+        if not memory_id:
+            return False
+
+        async with self._driver.session(database=self._database) as session:
+            result = await session.run(
+                "MATCH (n:base {entity_id: $id}) RETURN count(n) > 0 AS exists",
+                {"id": memory_id},
+            )
+            record = await result.single()
+            await result.consume()
+        return bool(record and record["exists"])
+
+    # TODO(plan-0759): proxy-node / source_kind expansion (per v2 §5d) deferred
+    # until file/vault integration writes :Proxy nodes. No proxy nodes exist
+    # in the live graph today (audited 2026-04-21).
     async def get_provenance(
         self,
         memory_id: str,

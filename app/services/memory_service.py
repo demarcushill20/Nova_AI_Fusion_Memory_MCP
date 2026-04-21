@@ -966,7 +966,26 @@ class MemoryService:
         Returns:
             True if both writes succeed, otherwise False (with rollback attempts).
         """
-        pinecone_meta = metadata.copy() if metadata else {}
+        # PLAN-0759 Phase 5b: scrub internal leading-underscore keys (e.g.
+        # ``_promoted_from``) from BOTH downstream writes. These keys are
+        # consumer-facing signals for the edge hooks in perform_upsert()
+        # and must never reach storage backends:
+        #   * Pinecone rejects/logs unexpected metadata shapes.
+        #   * Neo4j refuses dict/map property values (graph_client sets
+        #     ``SET n += $props`` with the full metadata dict), so a dict-
+        #     valued ``_promoted_from`` would fail the whole graph write.
+        # We build one sanitized copy used by both paths. The caller's
+        # original ``metadata`` dict is left untouched so the provenance
+        # hooks in ``perform_upsert`` (which run AFTER this function
+        # returns) still read ``metadata["_promoted_from"]`` to drive
+        # edge creation.
+        sanitized_metadata = {
+            k: v
+            for k, v in (metadata or {}).items()
+            if not (isinstance(k, str) and k.startswith("_"))
+        }
+
+        pinecone_meta = dict(sanitized_metadata)
         pinecone_meta["text"] = content
 
         pinecone_success = False
@@ -985,7 +1004,7 @@ class MemoryService:
 
         try:
             graph_success = await self.graph_client.upsert_graph_data(
-                item_id, content, metadata
+                item_id, content, sanitized_metadata
             )
         except Exception as e:
             logger.error(
@@ -1283,7 +1302,8 @@ class MemoryService:
                                 if similarity is not None
                                 else "conflict_detection"
                             )
-                            run_id = metadata.get("session_id", "supersession_hook") if metadata else "supersession_hook"
+                            session_id = metadata.get("session_id") if metadata else None
+                            run_id = f"wt-supersede-{session_id or 'no-session'}"
                             await self._provenance_edge_service.on_memory_supersede(
                                 new_id=item_id,
                                 old_id=conflict_id,
@@ -1298,6 +1318,108 @@ class MemoryService:
                 logger.warning(
                     f"Supersession edge dispatch failed for {item_id} (non-fatal): {e}"
                 )
+
+        # PLAN-0759 Phase 5b: write-time promotion edges.
+        # Flag-guarded hook. When ASSOC_PROVENANCE_WRITE_ENABLED is False
+        # (the default), this block is exactly one attribute read and a
+        # branch-not-taken — no imports, no allocations, zero cost. When
+        # True AND metadata carries a ``_promoted_from`` dict with the
+        # required shape, we lazily construct (or reuse) the same
+        # ``self._provenance_edge_service`` MemoryEdgeService and call
+        # ``on_memory_promote`` to MERGE a ``PROMOTED_FROM`` edge from the
+        # new (higher-layer) memory back to the old (lower-layer) source.
+        #
+        # Upstream contract: callers in ``nova-core/agents/`` (e.g. the
+        # memory consolidator / router) that promote a memory from one
+        # layer to another must pass
+        # ``metadata["_promoted_from"] = {"old_id": str, "from_layer": str,
+        # "to_layer": str}`` to trigger this edge. The key is scrubbed
+        # before the Pinecone upsert (see ``_persist_memory_item``) so it
+        # never leaks into the vector metadata.
+        #
+        # All failures are self-contained (try/except) and can never
+        # bubble up to perform_upsert()'s return value.
+        promo = metadata.get("_promoted_from") if metadata else None
+        if (
+            success
+            and settings.ASSOC_PROVENANCE_WRITE_ENABLED
+            and isinstance(promo, dict)
+            and all(
+                isinstance(promo.get(k), str) and promo.get(k)
+                for k in ("old_id", "from_layer", "to_layer")
+            )
+        ):
+            try:
+                if self._provenance_edge_service is None:
+                    from app.services.associations.edge_service import (
+                        MemoryEdgeService,
+                    )
+                    self._provenance_edge_service = MemoryEdgeService(
+                        self.graph_client.driver
+                    )
+
+                session_id = metadata.get("session_id") if metadata else None
+                run_id = f"wt-promote-{session_id or 'no-session'}"
+                await self._provenance_edge_service.on_memory_promote(
+                    new_id=item_id,
+                    old_id=promo["old_id"],
+                    from_layer=promo["from_layer"],
+                    to_layer=promo["to_layer"],
+                    run_id=run_id,
+                )
+            except Exception as exc:
+                logger.warning("promotion hook failed: %s", exc)
+
+        # PLAN-0759 Phase 5c: write-time compaction edges.
+        # Fires when metadata["_compacted_from"] is a dict carrying a
+        # compaction summary's source memories. Emits one COMPACTED_FROM
+        # edge per source id, directed from this new (summary) memory →
+        # each source. Internal signal keys starting with "_" are already
+        # stripped from Pinecone and graph metadata by _persist_memory_item's
+        # sanitized_metadata dict-comp — callers in nova-core/agents/ must
+        # pass metadata["_compacted_from"] to trigger edge creation.
+        # Fan-out is capped by the caller (nova-core's
+        # _MAX_COMPACTION_GROUP = 20); synchronous dispatch is fine at
+        # this volume.
+        if (
+            success
+            and settings.ASSOC_PROVENANCE_WRITE_ENABLED
+            and isinstance(metadata, dict)
+        ):
+            compact = metadata.get("_compacted_from")
+            if (
+                isinstance(compact, dict)
+                and isinstance(compact.get("source_ids"), list)
+                and compact["source_ids"]
+                and all(
+                    isinstance(sid, str) and sid
+                    for sid in compact["source_ids"]
+                )
+            ):
+                try:
+                    if self._provenance_edge_service is None:
+                        from app.services.associations.edge_service import (
+                            MemoryEdgeService,
+                        )
+                        self._provenance_edge_service = MemoryEdgeService(
+                            self.graph_client.driver
+                        )
+
+                    session_id = metadata.get("session_id")
+                    run_id = f"wt-compact-{session_id or 'no-session'}"
+                    compact_metadata: dict = {}
+                    if isinstance(compact.get("algorithm"), str):
+                        compact_metadata["algorithm"] = compact["algorithm"]
+                    if isinstance(compact.get("reason"), str):
+                        compact_metadata["reason"] = compact["reason"]
+                    await self._provenance_edge_service.on_memory_compact(
+                        summary_id=item_id,
+                        source_ids=compact["source_ids"],
+                        run_id=run_id,
+                        metadata=compact_metadata or None,
+                    )
+                except Exception as exc:
+                    logger.warning("compaction hook failed: %s", exc)
 
         # PLAN-0759 Phase 7a: write-time co-occurrence linking.
         # Flag-guarded hook. When ASSOC_COOCCURRENCE_WRITE_ENABLED is False

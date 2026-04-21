@@ -40,6 +40,7 @@ ASSOC_FLAG_NAMES: tuple[str, ...] = (
 # Flags that have been shipped (flipped to True after passing their gate).
 SHIPPED_TRUE: dict[str, bool] = {
     "ASSOC_GRAPH_RECALL_ENABLED": True,  # Phase 6, 2026-04-16
+    "ASSOC_PROVENANCE_WRITE_ENABLED": True,  # Phase 5a/5b/5c/5d, 2026-04-21
 }
 
 

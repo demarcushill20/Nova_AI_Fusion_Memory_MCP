@@ -869,6 +869,16 @@ async def get_provenance(
     SLO: p99 < 400ms for typical provenance chains (depth <= 10).
     Response cap: 30 nodes in the provenance chain.
 
+    Response flags:
+        - ``truncated``: True when the full provenance chain exceeded the
+          MCP response-size cap of 30 nodes and was trimmed.
+        - ``depth_limited``: True when graph traversal hit ``max_depth``
+          before exhausting the provenance chain (more ancestors may exist
+          beyond ``max_depth``).
+        - ``exists``: True when the ``memory_id`` resolves to a ``:base``
+          node in the graph. False indicates an unknown / ghost id.
+        Both ``truncated`` and ``depth_limited`` can be True independently.
+
     Args:
         memory_id: The entity_id of the memory to trace (required).
         max_depth: Maximum depth to traverse (default 10, clamped to [1, 10]).
@@ -901,20 +911,53 @@ async def get_provenance(
         # Enforce response-size cap on provenance chain
         full_chain = prov.get("provenance_chain", [])
         chain = full_chain[:MAX_CHAIN_NODES]
+        full_sources = prov.get("original_sources", [])
+        truncated = len(full_chain) > MAX_CHAIN_NODES
+        # When the chain is truncated, filter original_sources to only
+        # include ids that appear in the truncated chain — otherwise
+        # callers using original_sources to index into provenance_chain
+        # get dangling refs.
+        if truncated:
+            chain_ids = {entry.get("memory_id") for entry in chain}
+            filtered_sources = [s for s in full_sources if s in chain_ids]
+        else:
+            filtered_sources = full_sources[:MAX_CHAIN_NODES]
         result = {
             "memory_id": prov["memory_id"],
             "provenance_chain": chain,
-            "original_sources": prov.get("original_sources", [])[:MAX_CHAIN_NODES],
+            "original_sources": filtered_sources,
             "depth": prov.get("depth", 0),
+            "max_depth": prov.get("max_depth", max_depth),
             "depth_limited": prov.get("depth_limited", False),
             "chain_count": len(chain),
             "full_chain_count": len(full_chain),
-            "truncated": len(full_chain) > MAX_CHAIN_NODES,
+            "truncated": truncated,
         }
 
+        # Distinguish "exists but no provenance" from "unknown id".
+        # If we found any provenance edges, the node must exist.
+        # Otherwise do a lightweight existence check so callers can tell
+        # a ghost id from a graph-root node.
+        # ``exists_checked`` distinguishes "node truly absent" from
+        # "probe failed and we defaulted to False".
+        if full_chain:
+            result["exists"] = True
+            result["exists_checked"] = True
+        else:
+            try:
+                result["exists"] = await edge_service.node_exists(memory_id)
+                result["exists_checked"] = True
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.warning(
+                    "node_exists probe failed for %s: %s; reporting exists=False",
+                    memory_id, exc,
+                )
+                result["exists"] = False
+                result["exists_checked"] = False
+
         logger.info(
-            "get_provenance returning chain of %d for %s (depth=%d)",
-            len(chain), memory_id, result["depth"],
+            "get_provenance returning chain of %d for %s (depth=%d, exists=%s)",
+            len(chain), memory_id, result["depth"], result["exists"],
         )
         return result
 

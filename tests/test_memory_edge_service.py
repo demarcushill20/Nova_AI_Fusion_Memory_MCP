@@ -950,7 +950,7 @@ async def test_21_on_memory_supersede_creates_edge(
             )
         assert rec is not None
         assert rec["cb"] == "edge_service.on_memory_supersede"
-        assert rec["rid"] == "supersession_hook"
+        assert rec["rid"] == "wt-supersede-direct"
         assert rec["w"] == pytest.approx(1.0)
     finally:
         await _teardown_test_nodes(neo4j_async_driver)
