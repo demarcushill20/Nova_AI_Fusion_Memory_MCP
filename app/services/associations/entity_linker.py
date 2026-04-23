@@ -134,6 +134,8 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
+from app.observability.metrics import record_entity_mention
+
 from .entity_extractor import MAX_ENTITIES_PER_MEMORY, canon_entity, extract_entities
 from .memory_edges import EDGE_VERSION
 
@@ -536,6 +538,7 @@ class EntityLinker:
                     await result.consume()
                     if records:
                         edges_created += 1
+                        record_entity_mention()
 
             elapsed_ms = (time.perf_counter() - t0) * 1000.0
             logger.info(

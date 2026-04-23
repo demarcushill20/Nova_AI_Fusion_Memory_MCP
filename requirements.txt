@@ -57,6 +57,7 @@ uvicorn==0.34.2
 pydantic-settings==2.9.1
 mcp[cli]
 redis>=5.0.0
+prometheus-client==0.20.0
 # PLAN-0759 Phase 6 eval harness (LLM-as-judge). Only used by
 # tests/eval/*; the Sprint 3 scaffolding ships without running live.
 anthropic>=0.40.0

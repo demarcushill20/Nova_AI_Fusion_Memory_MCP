@@ -68,6 +68,18 @@ from datetime import datetime, timezone
 from typing import Any, AsyncIterator, Dict, List, Optional, Tuple
 
 try:
+    from app.observability.metrics import (
+        record_backfill_record,
+        set_backfill_progress,
+    )
+except ImportError:  # pragma: no cover — script may be run from non-package root
+    def set_backfill_progress(script: str, phase: str, value: float) -> None:
+        return None
+
+    def record_backfill_record(script: str) -> None:
+        return None
+
+try:
     from neo4j import AsyncDriver, AsyncGraphDatabase
     from neo4j import exceptions as neo4j_exceptions
 except ImportError as exc:  # pragma: no cover
@@ -617,6 +629,16 @@ async def backfill_mentions_edges(
                 last_memory_id = memory_id
 
             if processed_counter % 100 == 0:
+                # Emit liveness counter unconditionally — batch-granular,
+                # independent of max_total so full-graph runs still show
+                # monotonic progress via rate(...[1m]).
+                record_backfill_record("assoc_backfill_entities")
+                if max_total and max_total > 0:
+                    set_backfill_progress(
+                        "assoc_backfill_entities",
+                        "processing",
+                        min(1.0, processed_counter / float(max_total)),
+                    )
                 _write_checkpoint_atomic(
                     effective_checkpoint_path,
                     normalized_run_id,
@@ -647,6 +669,7 @@ async def backfill_mentions_edges(
                 exc,
             )
         report.completed_at = datetime.now(tz=timezone.utc).isoformat()
+        set_backfill_progress("assoc_backfill_entities", "processing", 1.0)
 
     LOGGER.info(
         "backfill.done run_id=%s scanned=%d processed=%d entities=%d "

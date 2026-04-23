@@ -72,6 +72,12 @@ import uuid
 from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any, Optional
 
+from app.observability.metrics import (
+    record_similarity_completion,
+    record_similarity_enqueue,
+    record_similarity_queue_event,
+)
+
 from .memory_edges import MemoryEdge
 
 if TYPE_CHECKING:  # pragma: no cover - import for type hints only
@@ -179,6 +185,7 @@ class SimilarityLinker:
         affected by anything downstream of this method. All structured
         logging happens inside the background task.
         """
+        enqueue_t0 = time.perf_counter()
         # Scoping guard: if the operator has disabled cross-project linking
         # and the memory has no project tag, we refuse to schedule. We do
         # NOT silently fall back to cross-project, because doing so would
@@ -190,6 +197,7 @@ class SimilarityLinker:
                 "cross_project_enabled=False project=None skipping=True",
                 memory_id,
             )
+            record_similarity_enqueue(time.perf_counter() - enqueue_t0)
             return
 
         # Saturation guard: a non-blocking check on the semaphore. If
@@ -208,6 +216,8 @@ class SimilarityLinker:
                     memory_id,
                     self.BACKGROUND_MAX_IN_FLIGHT,
                 )
+                record_similarity_queue_event("dropped_queue_full")
+                record_similarity_enqueue(time.perf_counter() - enqueue_t0)
                 return
 
         # Per-call run_id — used by MemoryEdgeService.delete_edges_by_run
@@ -236,6 +246,8 @@ class SimilarityLinker:
         # Strong reference so the task isn't GC'd mid-flight.
         self._inflight.add(task)
         task.add_done_callback(self._inflight.discard)
+        record_similarity_queue_event("queued")
+        record_similarity_enqueue(time.perf_counter() - enqueue_t0)
 
     # ------------------------------------------------------------------ #
     # Internal plumbing                                                  #
@@ -258,8 +270,9 @@ class SimilarityLinker:
         ``0`` instead of raising. This is the contract that protects
         ``perform_upsert()``.
         """
+        completion_t0 = time.perf_counter()
         try:
-            return await asyncio.wait_for(
+            result = await asyncio.wait_for(
                 self._link_one(
                     memory_id=memory_id,
                     embedding=embedding,
@@ -269,6 +282,9 @@ class SimilarityLinker:
                 ),
                 timeout=self.BACKGROUND_TIMEOUT,
             )
+            record_similarity_completion(time.perf_counter() - completion_t0)
+            record_similarity_queue_event("completed")
+            return result
         except asyncio.TimeoutError:
             logger.warning(
                 "similarity_link.failed memory_id=%s run_id=%s "
@@ -277,6 +293,8 @@ class SimilarityLinker:
                 run_id,
                 self.BACKGROUND_TIMEOUT,
             )
+            record_similarity_completion(time.perf_counter() - completion_t0)
+            record_similarity_queue_event("failed")
             return 0
         except Exception as exc:  # noqa: BLE001 — fail-open envelope
             logger.warning(
@@ -287,6 +305,8 @@ class SimilarityLinker:
                 type(exc).__name__,
                 exc,
             )
+            record_similarity_completion(time.perf_counter() - completion_t0)
+            record_similarity_queue_event("failed")
             return 0
 
     async def _link_one(

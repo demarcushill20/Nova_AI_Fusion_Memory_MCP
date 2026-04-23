@@ -78,9 +78,12 @@ and must filter by :data:`memory_edges.VALID_EDGE_TYPES`.
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any, Optional
 
 from neo4j import AsyncDriver
+
+from app.observability.metrics import record_edge_created
 
 from .edge_cypher import (
     build_delete_edges_by_run_cypher,
@@ -201,15 +204,28 @@ class MemoryEdgeService:
         query = build_merge_edge_cypher(effective_edge.edge_type)
         params = effective_edge.as_cypher_params()
 
-        async with self._driver.session(database=self._database) as session:
-            result = await session.run(query, params)
-            records = [rec async for rec in result]
-            await result.consume()
+        t0 = time.perf_counter()
+        try:
+            async with self._driver.session(database=self._database) as session:
+                result = await session.run(query, params)
+                records = [rec async for rec in result]
+                await result.consume()
+        except Exception:
+            record_edge_created(
+                effective_edge.edge_type, "error", time.perf_counter() - t0
+            )
+            raise
 
         # MERGE returns r on the RETURN clause; if the initial MATCH failed
         # (either endpoint missing) the result set is empty and nothing was
         # created. Caller interprets False as "one or both nodes missing".
-        return len(records) > 0
+        created = len(records) > 0
+        record_edge_created(
+            effective_edge.edge_type,
+            "success" if created else "error",
+            time.perf_counter() - t0,
+        )
+        return created
 
     async def create_edges_batch(self, edges: list[MemoryEdge]) -> int:
         """Create edges one-by-one in a single session.
@@ -248,10 +264,25 @@ class MemoryEdgeService:
 
                 query = build_merge_edge_cypher(effective_edge.edge_type)
                 params = effective_edge.as_cypher_params()
-                result = await session.run(query, params)
-                records = [rec async for rec in result]
-                await result.consume()
-                if records:
+                t0 = time.perf_counter()
+                try:
+                    result = await session.run(query, params)
+                    records = [rec async for rec in result]
+                    await result.consume()
+                except Exception:
+                    record_edge_created(
+                        effective_edge.edge_type,
+                        "error",
+                        time.perf_counter() - t0,
+                    )
+                    raise
+                succeeded = bool(records)
+                record_edge_created(
+                    effective_edge.edge_type,
+                    "success" if succeeded else "error",
+                    time.perf_counter() - t0,
+                )
+                if succeeded:
                     created += 1
 
         return created

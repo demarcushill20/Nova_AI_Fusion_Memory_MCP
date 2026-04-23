@@ -14,6 +14,9 @@ except ImportError:
 # Import API routers and the shared service instance
 from .api import memory_routes
 from .api.memory_routes import memory_service_instance # Import the shared instance
+from .observability.metrics import REGISTRY as METRICS_REGISTRY
+
+from prometheus_client import make_asgi_app
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +61,13 @@ app = FastAPI(
 # --- Include API Routers ---
 # Include the memory router (prefix '/memory' is defined within the router itself)
 app.include_router(memory_routes.router)
+
+# --- Prometheus metrics endpoint (PLAN-0759 Phase 8b, Sprint 18) ---
+# The metrics endpoint must not be exposed to arbitrary callers. Operator
+# deploys the app bound to 127.0.0.1 (see runbook); there is no auth
+# middleware on this FastAPI app today, so binding-level isolation is the
+# control. Scrape config lives on the host.
+app.mount("/metrics", make_asgi_app(registry=METRICS_REGISTRY))
 
 # --- Root Endpoint (Optional) ---
 @app.get("/", tags=["General"])

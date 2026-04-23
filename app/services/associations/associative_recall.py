@@ -38,7 +38,10 @@ from __future__ import annotations
 import asyncio
 import logging
 import math
+import time
 from typing import Any, Optional
+
+from app.observability.metrics import record_graph_expansion
 
 logger = logging.getLogger(__name__)
 
@@ -123,9 +126,12 @@ class AssociativeRecall:
             Cap on the number of expansion candidates. Defaults to
             :data:`MAX_EXPANSION`.
         """
+        expand_t0 = time.perf_counter()
         if not isinstance(seed_results, list):
+            record_graph_expansion(intent, time.perf_counter() - expand_t0, 0)
             return []
         if not seed_results:
+            record_graph_expansion(intent, time.perf_counter() - expand_t0, 0)
             return []
 
         cap = max_expansion if max_expansion is not None else self.MAX_EXPANSION
@@ -156,6 +162,7 @@ class AssociativeRecall:
                 seed_scores[sid] = float(score)
 
         if not seed_ids:
+            record_graph_expansion(intent, time.perf_counter() - expand_t0, 0)
             return list(seed_results)
 
         # --- Hop 1: seed → neighbors (parallel fan-out) ------------------- #
@@ -319,6 +326,7 @@ class AssociativeRecall:
         top = all_candidates[:cap]
 
         if not top:
+            record_graph_expansion(intent, time.perf_counter() - expand_t0, 0)
             return list(seed_results)
 
         # --- Optionally fetch full content ------------------------------- #
@@ -373,4 +381,7 @@ class AssociativeRecall:
             self.MAX_HOPS,
         )
 
+        record_graph_expansion(
+            intent, time.perf_counter() - expand_t0, len(expansion_results)
+        )
         return list(seed_results) + expansion_results
