@@ -63,10 +63,13 @@ app = FastAPI(
 app.include_router(memory_routes.router)
 
 # --- Prometheus metrics endpoint (PLAN-0759 Phase 8b, Sprint 18) ---
-# The metrics endpoint must not be exposed to arbitrary callers. Operator
-# deploys the app bound to 127.0.0.1 (see runbook); there is no auth
-# middleware on this FastAPI app today, so binding-level isolation is the
-# control. Scrape config lives on the host.
+# The /metrics endpoint has no auth middleware. Exposure is gated at the
+# network boundary: the process MUST bind to 127.0.0.1 (never 0.0.0.0).
+# Scrape config runs on the host. If a reverse proxy fronts this service,
+# the /metrics path MUST be excluded from the public route or allowlisted
+# to the scrape host only. The direct-launch block below defaults to
+# 127.0.0.1; production deploys under uvicorn/systemd MUST pass --host
+# 127.0.0.1 explicitly (see runbook).
 app.mount("/metrics", make_asgi_app(registry=METRICS_REGISTRY))
 
 # --- Root Endpoint (Optional) ---
@@ -85,10 +88,14 @@ async def read_root():
 # Placeholder for other potential middleware or configurations
 
 if __name__ == "__main__":
-    # This block allows running the app directly using `python app/main.py`
-    # However, it's more common to run using Uvicorn: `uvicorn app.main:app --reload`
+    # Direct-launch debug path: `python app/main.py`. Binds to 127.0.0.1
+    # only — /metrics has no auth, so external exposure would leak
+    # internal SLO / latency signals. Override via METRICS_HOST env var
+    # if you know what you're doing (e.g., a container network where the
+    # only reachable callers are sibling services behind an allowlist).
+    import os
     import uvicorn
-    print("Running FastAPI app directly using Uvicorn (for debugging)...")
-    # Note: Configuration loading happens when config.py is imported.
-    # Ensure .env file is present or environment variables are set.
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    host = os.environ.get("METRICS_HOST", "127.0.0.1")
+    port = int(os.environ.get("METRICS_PORT", "8000"))
+    print(f"Running FastAPI app directly on {host}:{port} (debug mode)...")
+    uvicorn.run(app, host=host, port=port)

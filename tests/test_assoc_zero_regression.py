@@ -442,7 +442,11 @@ def _assert_assoc_flags_all_false() -> None:
     force-disabled inside the test via monkeypatching so the zero-regression
     baseline stays valid.
     """
-    shipped_flags = {"ASSOC_GRAPH_RECALL_ENABLED", "ASSOC_PROVENANCE_WRITE_ENABLED"}
+    shipped_flags = {
+        "ASSOC_GRAPH_RECALL_ENABLED",
+        "ASSOC_PROVENANCE_WRITE_ENABLED",
+        "ASSOC_TASK_HEURISTIC_WRITE_ENABLED",
+    }
     bad = [
         name for name in ASSOC_FLAG_NAMES
         if name not in shipped_flags and getattr(settings, name) is not False
@@ -461,11 +465,14 @@ def _assert_assoc_flags_all_false() -> None:
 @pytest.mark.asyncio
 async def test_phase0_zero_regression_baseline() -> None:
     """Pin MemoryService upsert+query behavior under ASSOC_* all-False."""
-    # Force shipped read-path and provenance flags to False for zero-regression pinning.
+    # Force shipped read-path, provenance, and task-heuristic flags to False
+    # for zero-regression pinning.
     _orig_graph_recall = settings.ASSOC_GRAPH_RECALL_ENABLED
     _orig_provenance = settings.ASSOC_PROVENANCE_WRITE_ENABLED
+    _orig_task_heur = settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED
     settings.ASSOC_GRAPH_RECALL_ENABLED = False  # type: ignore[misc]
     settings.ASSOC_PROVENANCE_WRITE_ENABLED = False  # type: ignore[misc]
+    settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED = False  # type: ignore[misc]
     try:
         _assert_assoc_flags_all_false()
 
@@ -522,6 +529,7 @@ async def test_phase0_zero_regression_baseline() -> None:
     finally:
         settings.ASSOC_GRAPH_RECALL_ENABLED = _orig_graph_recall  # type: ignore[misc]
         settings.ASSOC_PROVENANCE_WRITE_ENABLED = _orig_provenance  # type: ignore[misc]
+        settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED = _orig_task_heur  # type: ignore[misc]
 
 
 if __name__ == "__main__":  # pragma: no cover - local debugging helper

@@ -328,22 +328,26 @@ async def test_nonfatal_edge_failure() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 9. Skipped when flag off (integration-level test of the guard)
+# 9. Flag shipped True (integration-level test of the guard)
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.asyncio
-async def test_task_heuristic_flag_default_is_false() -> None:
-    """ASSOC_TASK_HEURISTIC_WRITE_ENABLED defaults to False."""
+async def test_task_heuristic_flag_default_is_true() -> None:
+    """ASSOC_TASK_HEURISTIC_WRITE_ENABLED defaults to True.
+
+    Flipped 2026-04-23 after Phase 6 parity gate cleared (the documented
+    precondition). The hook body is a cheap metadata check — it only
+    dispatches when the memory is a ``bug_fix`` with a ``fixes_task_id``,
+    so the default-on flag is a no-op for non-opted-in callers.
+    """
     from app.config import settings
 
-    # The flag should be False by default
-    assert settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED is False
+    assert settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED is True
 
-    # Verify that the flag-guarded block in perform_upsert would not
-    # fire: the condition is `success and settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED`
-    # With the flag False, this evaluates to False.
-    assert not (True and settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED)
+    # Verify the flag-guarded block in perform_upsert is reachable:
+    # `success and settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED`.
+    assert (True and settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED)
 
 
 # ---------------------------------------------------------------------------
