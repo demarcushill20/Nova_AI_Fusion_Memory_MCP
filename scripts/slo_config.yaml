@@ -1,0 +1,37 @@
+# SLO thresholds for PLAN-0759 Phase 8 association-linking observability.
+# Edit values here - do NOT put thresholds in code.
+#
+# Consumed by scripts/slo_alert_check.py. See that module's docstring for the
+# intended cron cadence and wiring.
+slos:
+  - name: p95_similarity_link_enqueue
+    metric: similarity_link_enqueue_seconds
+    aggregation: p95
+    threshold_seconds: 0.005
+    direction: less_than   # actual must be LESS than threshold
+  - name: p95_similarity_link_completion
+    metric: similarity_link_completion_seconds
+    aggregation: p95
+    threshold_seconds: 10.0
+    direction: less_than
+  - name: p95_graph_expansion_latency
+    metric: graph_expansion_latency_seconds
+    aggregation: p95
+    threshold_seconds: 0.2
+    direction: less_than
+  - name: edge_create_error_rate
+    metric: edges_created_total
+    aggregation: error_rate   # error_outcome / total across all edge types
+    threshold: 0.01           # 1%
+    direction: less_than
+  - name: daily_edges_created_deviation
+    metric: MemoryEdgeService.get_edge_stats   # sourced from Neo4j, not Prom
+    aggregation: deviation_vs_median_7d
+    threshold_multiplier: 10.0  # fires if today's delta is >10x rolling median
+    direction: bounded          # fires if outside [median/mult, median*mult]
+notify:
+  vault_folder: "70-debugging"
+  vault_filename_pattern: "slo-alert-{slo_name}-{date}.md"
+  slack_env_var: SLACK_ALERT_WEBHOOK
+state_file: data/slo_edges_baseline.json
+prometheus_url: http://localhost:8000/metrics   # default; override with --metrics-url

@@ -132,3 +132,4 @@ MagicMock/
 # Runtime state — event sequence counter is live and belongs in the
 # operator's environment, not in git history.
 data/event_seq.counter
+data/slo_edges_baseline.json
