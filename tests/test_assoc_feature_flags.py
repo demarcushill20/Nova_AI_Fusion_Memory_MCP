@@ -42,6 +42,10 @@ SHIPPED_TRUE: dict[str, bool] = {
     "ASSOC_GRAPH_RECALL_ENABLED": True,  # Phase 6, 2026-04-16
     "ASSOC_PROVENANCE_WRITE_ENABLED": True,  # Phase 5a/5b/5c/5d, 2026-04-21
     "ASSOC_TASK_HEURISTIC_WRITE_ENABLED": True,  # Phase 7b, 2026-04-23
+    "ASSOC_SIMILARITY_WRITE_ENABLED": True,  # Phase 1, 2026-04-23 (Sprint 21)
+    "ASSOC_ENTITY_WRITE_ENABLED": True,  # Phase 2, 2026-04-23 (Sprint 21)
+    "ASSOC_TEMPORAL_WRITE_ENABLED": True,  # Phase 3, 2026-04-23 (Sprint 21)
+    "ASSOC_COOCCURRENCE_WRITE_ENABLED": True,  # Phase 7a, 2026-04-23 (Sprint 21)
 }
 
 

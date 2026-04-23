@@ -408,7 +408,11 @@ async def test_01_flag_off_hook_is_noop(
     try:
         await _create_test_nodes(neo4j_async_driver, [src_id], run_tag)
 
-        with _FlagOverride("ASSOC_ENTITY_WRITE_ENABLED", False):
+        # The cooccurrence hook constructs an EntityLinker for read-only
+        # lookups even when ASSOC_ENTITY_WRITE_ENABLED is off, so force
+        # cooccurrence off too for this flag-off isolation test.
+        with _FlagOverride("ASSOC_ENTITY_WRITE_ENABLED", False), \
+                _FlagOverride("ASSOC_COOCCURRENCE_WRITE_ENABLED", False):
             returned_id = await service.perform_upsert(
                 content="flag-off entity test with neo4j and Pinecone mentions",
                 memory_id=src_id,

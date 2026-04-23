@@ -446,6 +446,10 @@ def _assert_assoc_flags_all_false() -> None:
         "ASSOC_GRAPH_RECALL_ENABLED",
         "ASSOC_PROVENANCE_WRITE_ENABLED",
         "ASSOC_TASK_HEURISTIC_WRITE_ENABLED",
+        "ASSOC_SIMILARITY_WRITE_ENABLED",
+        "ASSOC_ENTITY_WRITE_ENABLED",
+        "ASSOC_TEMPORAL_WRITE_ENABLED",
+        "ASSOC_COOCCURRENCE_WRITE_ENABLED",
     }
     bad = [
         name for name in ASSOC_FLAG_NAMES
@@ -465,14 +469,22 @@ def _assert_assoc_flags_all_false() -> None:
 @pytest.mark.asyncio
 async def test_phase0_zero_regression_baseline() -> None:
     """Pin MemoryService upsert+query behavior under ASSOC_* all-False."""
-    # Force shipped read-path, provenance, and task-heuristic flags to False
-    # for zero-regression pinning.
+    # Force all shipped flags to False for zero-regression pinning so the
+    # baseline trace captures upsert+query behavior under ASSOC_* all-False.
     _orig_graph_recall = settings.ASSOC_GRAPH_RECALL_ENABLED
     _orig_provenance = settings.ASSOC_PROVENANCE_WRITE_ENABLED
     _orig_task_heur = settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED
+    _orig_similarity = settings.ASSOC_SIMILARITY_WRITE_ENABLED
+    _orig_entity = settings.ASSOC_ENTITY_WRITE_ENABLED
+    _orig_temporal = settings.ASSOC_TEMPORAL_WRITE_ENABLED
+    _orig_cooccurrence = settings.ASSOC_COOCCURRENCE_WRITE_ENABLED
     settings.ASSOC_GRAPH_RECALL_ENABLED = False  # type: ignore[misc]
     settings.ASSOC_PROVENANCE_WRITE_ENABLED = False  # type: ignore[misc]
     settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED = False  # type: ignore[misc]
+    settings.ASSOC_SIMILARITY_WRITE_ENABLED = False  # type: ignore[misc]
+    settings.ASSOC_ENTITY_WRITE_ENABLED = False  # type: ignore[misc]
+    settings.ASSOC_TEMPORAL_WRITE_ENABLED = False  # type: ignore[misc]
+    settings.ASSOC_COOCCURRENCE_WRITE_ENABLED = False  # type: ignore[misc]
     try:
         _assert_assoc_flags_all_false()
 
@@ -530,6 +542,10 @@ async def test_phase0_zero_regression_baseline() -> None:
         settings.ASSOC_GRAPH_RECALL_ENABLED = _orig_graph_recall  # type: ignore[misc]
         settings.ASSOC_PROVENANCE_WRITE_ENABLED = _orig_provenance  # type: ignore[misc]
         settings.ASSOC_TASK_HEURISTIC_WRITE_ENABLED = _orig_task_heur  # type: ignore[misc]
+        settings.ASSOC_SIMILARITY_WRITE_ENABLED = _orig_similarity  # type: ignore[misc]
+        settings.ASSOC_ENTITY_WRITE_ENABLED = _orig_entity  # type: ignore[misc]
+        settings.ASSOC_TEMPORAL_WRITE_ENABLED = _orig_temporal  # type: ignore[misc]
+        settings.ASSOC_COOCCURRENCE_WRITE_ENABLED = _orig_cooccurrence  # type: ignore[misc]
 
 
 if __name__ == "__main__":  # pragma: no cover - local debugging helper

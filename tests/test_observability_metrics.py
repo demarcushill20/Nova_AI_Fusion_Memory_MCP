@@ -374,7 +374,10 @@ def test_metrics_endpoint_mounted_and_returns_prometheus_text() -> None:
     # the default process/python collectors + any emission from within
     # this test run are visible.
 
-    client = TestClient(app_main.app)
+    # PLAN-0759 Sprint 21 Phase 3: /metrics has a loopback-only
+    # enforcement middleware. Use 127.0.0.1 as the client host so
+    # TestClient passes the middleware check.
+    client = TestClient(app_main.app, client=("127.0.0.1", 50000))
     resp = client.get("/metrics")
     assert resp.status_code == 200
     assert "text/plain" in resp.headers.get("content-type", "")

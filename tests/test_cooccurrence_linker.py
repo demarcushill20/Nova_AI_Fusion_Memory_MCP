@@ -314,8 +314,14 @@ async def test_cooccurrence_nonfatal_per_edge():
 
 
 @pytest.mark.asyncio
-async def test_cooccurrence_flag_default_is_false():
-    """The ASSOC_COOCCURRENCE_WRITE_ENABLED flag defaults to False."""
+async def test_cooccurrence_flag_default_is_true():
+    """The ASSOC_COOCCURRENCE_WRITE_ENABLED flag defaults to True.
+
+    Flipped 2026-04-23 Sprint 21 after backfill produced 4,734 CO_OCCURS
+    edges cleanly with hub-suppression and per-entity degree cap enforced.
+    The write-time linker's hot path is identical to the backfill scan,
+    so flipping is a low-risk density win.
+    """
     from app.config import Settings
 
     settings = Settings(
@@ -323,7 +329,7 @@ async def test_cooccurrence_flag_default_is_false():
         PINECONE_API_KEY="test-key",
         PINECONE_ENV="test-env",
     )
-    assert settings.ASSOC_COOCCURRENCE_WRITE_ENABLED is False
+    assert settings.ASSOC_COOCCURRENCE_WRITE_ENABLED is True
 
 
 @pytest.mark.asyncio
