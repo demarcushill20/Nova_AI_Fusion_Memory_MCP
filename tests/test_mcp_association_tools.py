@@ -714,6 +714,55 @@ class TestGetProvenance:
         call_kwargs = edge_svc.get_provenance.call_args
         assert call_kwargs.kwargs.get("max_depth", 10) <= 10
 
+    @pytest.mark.asyncio
+    async def test_get_provenance_mixed_edge_types(self):
+        """Mixed SUPERSEDES + PROMOTED_FROM + COMPACTED_FROM chain preserves edge_type per hop.
+
+        The existing TestGetProvenance coverage only exercises pure-type chains
+        (all SUPERSEDES or all PROMOTED_FROM). This closes the gap noted by the
+        Phase 8 Validator: the MCP handler must preserve the ``edge_type``
+        field verbatim for every entry in the serialized provenance_chain,
+        regardless of whether the chain mixes types.
+        """
+        edge_svc = AsyncMock()
+        edge_svc.get_provenance = AsyncMock(return_value={
+            "memory_id": "mixed-root",
+            "provenance_chain": [
+                {"memory_id": "sup-leaf", "edge_type": "SUPERSEDES",
+                 "depth": 1, "metadata": None},
+                {"memory_id": "prom-mid", "edge_type": "PROMOTED_FROM",
+                 "depth": 1, "metadata": None},
+                {"memory_id": "comp-leaf", "edge_type": "COMPACTED_FROM",
+                 "depth": 2, "metadata": None},
+            ],
+            "original_sources": ["sup-leaf", "comp-leaf"],
+            "depth": 2,
+            "max_depth": 10,
+            "depth_limited": False,
+        })
+
+        ms = _make_memory_service(edge_service=edge_svc)
+        ctx = _make_ctx(ms)
+
+        result = await get_provenance(ctx, memory_id="mixed-root")
+
+        assert "error" not in result
+        assert result["chain_count"] == 3
+        assert result["truncated"] is False
+
+        # Every entry retains its edge_type through the serialization.
+        by_id = {hop["memory_id"]: hop for hop in result["provenance_chain"]}
+        assert by_id["sup-leaf"]["edge_type"] == "SUPERSEDES"
+        assert by_id["prom-mid"]["edge_type"] == "PROMOTED_FROM"
+        assert by_id["comp-leaf"]["edge_type"] == "COMPACTED_FROM"
+
+        # All three provenance types are represented in the serialized chain.
+        edge_types = {hop["edge_type"] for hop in result["provenance_chain"]}
+        assert edge_types == {"SUPERSEDES", "PROMOTED_FROM", "COMPACTED_FROM"}
+
+        # Leaf-node set preserved across serialization.
+        assert set(result["original_sources"]) == {"sup-leaf", "comp-leaf"}
+
 
 # ===================================================================
 # get_session_timeline
