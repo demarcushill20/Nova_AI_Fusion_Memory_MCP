@@ -1998,7 +1998,19 @@ class MemoryService:
                 key=lambda r: r.get("metadata", {}).get("event_seq", 0),
                 reverse=True,
             )
-            latest = results[0]
+            top = results[0]
+
+            # Pinecone returns ScoredVector objects, which support __getitem__/.get
+            # but are NOT dict instances. Convert to a plain dict FIRST — otherwise
+            # _sanitize() below would hit its str(obj) fallback and stringify the
+            # whole record, breaking the subsequent .get() access (and the caller).
+            meta = top.get("metadata", {}) or {}
+            latest = {
+                "id": top.get("id", top.get("entity_id", "")),
+                "score": top.get("score", 0.0),
+                "metadata": dict(meta),
+                "source": "pinecone",
+            }
 
             # Sanitize for JSON serialization — convert any non-serializable values
             def _sanitize(obj: Any) -> Any:
@@ -2195,8 +2207,21 @@ class MemoryService:
                 statuses["graph"] = f"error: {results[1]}" if isinstance(results[1], Exception) else "error: Failed check"
                 statuses["status"] = "error" # Overall status degraded
 
-            # Reranker status (based on loading)
-            statuses["reranker"] = "loaded" if self._reranker_loaded else "disabled/failed"
+            # Reranker status — distinguish "not loaded yet" (lazy cascade, loads
+            # on first query) from genuinely failed. The previous code reported
+            # "disabled/failed" for both, alarming operators on a fresh process
+            # that simply hadn't run a query yet.
+            if self._reranker_loaded or getattr(self.reranker, "_loaded", False):
+                statuses["reranker"] = "loaded"
+            elif self.reranker is not None:
+                if getattr(self.reranker, "_load_attempts", 0) >= 3:
+                    statuses["reranker"] = "failed"
+                else:
+                    statuses["reranker"] = "lazy/not-loaded"
+            elif self.pinecone_reranker is not None:
+                statuses["reranker"] = "pinecone_api/fallback"
+            else:
+                statuses["reranker"] = "disabled"
 
             # Redis status (Phase 6)
             statuses["redis"] = "connected" if self.sequence_service._using_redis else "disabled/fallback"

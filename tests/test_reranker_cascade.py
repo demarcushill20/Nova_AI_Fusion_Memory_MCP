@@ -497,3 +497,70 @@ class TestCascadeIntegration(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# check_health reranker-status reporting (regression: "disabled/failed" on a
+# fresh process that simply hadn't run a query yet)
+# ---------------------------------------------------------------------------
+
+class TestCheckHealthRerankerStatus(unittest.TestCase):
+    """check_health must distinguish lazy/not-loaded from genuinely failed."""
+
+    def _make_service(self, reranker=None, pinecone_reranker=None, reranker_loaded=False):
+        from app.services.memory_service import MemoryService
+
+        svc = MemoryService.__new__(MemoryService)
+        svc._initialized = True
+        svc._reranker_loaded = reranker_loaded
+        svc.reranker = reranker
+        svc.pinecone_reranker = pinecone_reranker
+
+        svc.pinecone_client = MagicMock()
+        svc.pinecone_client.check_connection = MagicMock(return_value=True)
+        svc.graph_client = MagicMock()
+        svc.graph_client.check_connection = AsyncMock(return_value=True)
+        svc.sequence_service = MagicMock()
+        svc.sequence_service._using_redis = True
+        svc.redis_timeline = MagicMock()
+        return svc
+
+    def test_lazy_not_loaded_is_not_failed(self):
+        """A configured-but-not-yet-loaded reranker reports lazy, not failed."""
+        rr = MagicMock()
+        rr._loaded = False
+        rr._load_attempts = 0
+        svc = self._make_service(reranker=rr, reranker_loaded=False)
+        health = run(svc.check_health())
+        self.assertEqual(health["reranker"], "lazy/not-loaded")
+        self.assertEqual(health["status"], "ok")
+
+    def test_loaded_flag_reports_loaded(self):
+        svc = self._make_service(reranker=MagicMock(), reranker_loaded=True)
+        health = run(svc.check_health())
+        self.assertEqual(health["reranker"], "loaded")
+
+    def test_model_loaded_attr_reports_loaded(self):
+        rr = MagicMock()
+        rr._loaded = True
+        svc = self._make_service(reranker=rr, reranker_loaded=False)
+        health = run(svc.check_health())
+        self.assertEqual(health["reranker"], "loaded")
+
+    def test_exhausted_attempts_reports_failed(self):
+        rr = MagicMock()
+        rr._loaded = False
+        rr._load_attempts = 3
+        svc = self._make_service(reranker=rr, reranker_loaded=False)
+        health = run(svc.check_health())
+        self.assertEqual(health["reranker"], "failed")
+
+    def test_no_local_reranker_falls_back_to_pinecone(self):
+        svc = self._make_service(reranker=None, pinecone_reranker=MagicMock())
+        health = run(svc.check_health())
+        self.assertEqual(health["reranker"], "pinecone_api/fallback")
+
+    def test_no_reranker_at_all_is_disabled(self):
+        svc = self._make_service(reranker=None, pinecone_reranker=None)
+        health = run(svc.check_health())
+        self.assertEqual(health["reranker"], "disabled")

@@ -475,3 +475,85 @@ class TestCheckpointContract:
         for _ in range(10):
             latest = _get_last_checkpoint_logic(results)
             assert latest["metadata"]["session_id"] == "new"
+
+
+# --- Regression: Pinecone ScoredVector handling (real method) ---
+
+
+class _FakeScoredVector:
+    """Mimics a Pinecone ScoredVector: supports .get()/__getitem__ but is NOT a dict.
+
+    This is the exact shape pinecone_client.query_vector returns. The original
+    get_last_checkpoint passed it straight into a _sanitize() helper whose
+    isinstance(obj, dict) check was False for this type, so it fell through to
+    str(obj) — stringifying the whole record and causing
+    'str' object has no attribute 'get' on the next access.
+    """
+
+    def __init__(self, data):
+        self._data = data
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+
+class TestGetLastCheckpointScoredVector:
+    """Regression for the ScoredVector-stringification bug (real method path)."""
+
+    def _make_service(self, scored_results):
+        """Build a MemoryService that skips the Redis fast path and returns
+        ScoredVector-like objects from Pinecone."""
+        from app.services.memory_service import MemoryService
+
+        svc = MemoryService.__new__(MemoryService)
+        svc._initialized = True
+        svc.redis_timeline = None  # force the Pinecone fallback path
+        svc.pinecone_client = MagicMock()
+        svc.pinecone_client.query_vector = MagicMock(return_value=scored_results)
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_scoredvector_result_is_not_stringified(self):
+        scored = [
+            _FakeScoredVector({
+                "id": "id_a",
+                "score": 0.0,
+                "metadata": {
+                    "memory_type": "checkpoint",
+                    "event_seq": 853,
+                    "session_id": "session-2026-06-01-2",
+                    "session_summary": "did things",
+                    "open_threads": ["thread one", "thread two"],
+                },
+            }),
+            _FakeScoredVector({
+                "id": "id_b",
+                "score": 0.0,
+                "metadata": {
+                    "memory_type": "checkpoint",
+                    "event_seq": 854,
+                    "session_id": "session-2026-06-01-3",
+                },
+            }),
+        ]
+        svc = self._make_service(scored)
+        result = await svc.get_last_checkpoint(project="nova-core")
+
+        # Before the fix this returned None (AttributeError swallowed by except).
+        assert result is not None, "checkpoint lookup must not return None when checkpoints exist"
+        assert isinstance(result, dict)
+        assert isinstance(result["metadata"], dict)
+        # Highest event_seq wins.
+        assert result["metadata"]["event_seq"] == 854
+        assert result["metadata"]["session_id"] == "session-2026-06-01-3"
+        # Nested list metadata survives sanitization.
+        result_a_meta = result["metadata"]
+        assert "session_id" in result_a_meta
+
+    @pytest.mark.asyncio
+    async def test_empty_pinecone_returns_none(self):
+        svc = self._make_service([])
+        assert await svc.get_last_checkpoint() is None
