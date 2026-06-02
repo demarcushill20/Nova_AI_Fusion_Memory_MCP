@@ -557,3 +557,52 @@ class TestGetLastCheckpointScoredVector:
     async def test_empty_pinecone_returns_none(self):
         svc = self._make_service([])
         assert await svc.get_last_checkpoint() is None
+
+    @pytest.mark.asyncio
+    async def test_fallback_overfetches_to_cover_all_checkpoints(self):
+        """Regression: the Pinecone fallback must over-fetch (top_k =
+        MAX_OVER_FETCH), not a tiny window. A dummy zero query vector makes
+        Pinecone return an ARBITRARY subset; a small top_k (the old value, 20)
+        could miss the true latest and silently return a stale checkpoint —
+        the bug that rewound 'last session' to a months-old record."""
+        from app.services.memory_service import MemoryService
+
+        svc = self._make_service([
+            _FakeScoredVector({
+                "id": "id_x",
+                "score": 0.0,
+                "metadata": {"memory_type": "checkpoint", "event_seq": 606},
+            }),
+        ])
+        await svc.get_last_checkpoint()
+
+        _, kwargs = svc.pinecone_client.query_vector.call_args
+        assert kwargs["top_k"] == MemoryService.MAX_OVER_FETCH, (
+            "fallback must over-fetch so the true latest checkpoint is in the "
+            f"sample, got top_k={kwargs['top_k']}"
+        )
+
+    @pytest.mark.asyncio
+    async def test_fallback_finds_latest_buried_in_arbitrary_order(self):
+        """The newest checkpoint can appear anywhere in Pinecone's arbitrary
+        (zero-vector) result order. The client-side sort must still surface it,
+        not the first/last record returned."""
+        scored = [
+            _FakeScoredVector({
+                "id": f"id_{seq}",
+                "score": 0.0,
+                "metadata": {
+                    "memory_type": "checkpoint",
+                    "event_seq": seq,
+                    "session_id": f"session-{seq}",
+                },
+            })
+            # Latest (854) sits in the MIDDLE of an unsorted batch.
+            for seq in [606, 612, 854, 600, 700]
+        ]
+        svc = self._make_service(scored)
+        result = await svc.get_last_checkpoint(project="nova-core")
+
+        assert result is not None
+        assert result["metadata"]["event_seq"] == 854
+        assert result["metadata"]["session_id"] == "session-854"

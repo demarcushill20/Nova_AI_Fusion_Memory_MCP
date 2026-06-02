@@ -10,6 +10,7 @@ Falls back to logic-only tests if fakeredis is not installed.
 import asyncio
 import json
 import pytest
+import pytest_asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 from typing import List, Tuple, Dict, Any, Optional
 
@@ -138,7 +139,7 @@ class TestRedisTimelineLogic:
 class TestRedisTimelineWithFakeRedis:
     """Full integration tests using fakeredis."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def redis_client(self):
         client = fakeredis_aio.FakeRedis(decode_responses=True)
         yield client
@@ -231,7 +232,7 @@ class TestRedisTimelineWithFakeRedis:
 class TestSequenceServiceWithFakeRedis:
     """SequenceService with Redis backend via fakeredis."""
 
-    @pytest.fixture
+    @pytest_asyncio.fixture
     async def seq_service(self, tmp_path):
         client = fakeredis_aio.FakeRedis(decode_responses=True)
         svc = SequenceService(
@@ -273,6 +274,40 @@ class TestSequenceServiceWithFakeRedis:
         results = await asyncio.gather(*tasks)
         assert len(results) == len(set(results))
         assert sorted(results) == list(range(1, 51))
+
+    @pytest.mark.asyncio
+    async def test_flushall_does_not_rewind_sequence(self, seq_service):
+        """Regression: a Redis FLUSHALL must not rewind the counter.
+
+        The on-disk file is a durable high-water mark that survives a flush;
+        Redis is not. After a flush, INCR restarts at 1 — the guard must
+        reseed above the file watermark so event_seq stays monotonic and
+        never collides with history already in Pinecone.
+        """
+        # Advance to seq 5; file watermark now 5.
+        for _ in range(5):
+            await seq_service.next_seq()
+        assert seq_service.current_seq() == 5
+
+        # Simulate FLUSHALL: the Redis counter key is wiped.
+        await seq_service._redis.flushall()
+
+        # Next allocation must continue at 6, NOT rewind to 1.
+        val = await seq_service.next_seq()
+        assert val == 6, f"counter rewound after FLUSHALL: got {val}"
+        assert seq_service.current_seq() == 6
+        # And it keeps climbing monotonically.
+        assert await seq_service.next_seq() == 7
+
+    @pytest.mark.asyncio
+    async def test_flushall_does_not_rewind_batch(self, seq_service):
+        """A FLUSHALL mid-life must not rewind a subsequent batch allocation."""
+        for _ in range(10):
+            await seq_service.next_seq()
+        await seq_service._redis.flushall()
+        batch = await seq_service.next_batch(3)
+        assert batch == [11, 12, 13], f"batch rewound after FLUSHALL: {batch}"
+        assert seq_service.current_seq() == 13
 
 
 # --- Graceful Fallback Tests ---

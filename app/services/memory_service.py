@@ -1982,10 +1982,20 @@ class MemoryService:
             from app.services.embedding_service import EMBEDDING_DIM
 
             dummy_vector = [0.0] * EMBEDDING_DIM
+            # A dummy (zero) query vector makes Pinecone return an ARBITRARY
+            # subset of matching records, not the most recent ones — all
+            # similarity scores are meaningless, so order is undefined. The
+            # latest checkpoint is only guaranteed to be in the sample if we
+            # over-fetch enough to cover every checkpoint, then sort
+            # client-side by event_seq. A small top_k (e.g. 20) silently
+            # returns a stale checkpoint whenever the true latest falls
+            # outside that arbitrary 20-record window. Checkpoints are rare
+            # (≈1 per session), so MAX_OVER_FETCH comfortably covers all of
+            # them. Mirrors the proven over-fetch in get_recent_events.
             results = await asyncio.to_thread(
                 self.pinecone_client.query_vector,
                 dummy_vector,
-                top_k=20,
+                top_k=self.MAX_OVER_FETCH,
                 filter=filter_dict,
             )
 

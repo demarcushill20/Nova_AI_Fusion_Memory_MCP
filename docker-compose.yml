@@ -31,7 +31,22 @@ services:
       - "6379:6379"
     volumes:
       - redis_data:/data
-    command: redis-server --appendonly yes
+    # Disable destructive flush commands. The live memory timeline + sequence
+    # counter live in this Redis; a stray FLUSHALL/FLUSHDB from any localhost
+    # client previously wiped them (see SequenceService flush-regression guard).
+    # Renaming to "" disables the commands entirely. NOTE: only safe because the
+    # AOF has been rewritten to drop historical FLUSHALL entries — otherwise AOF
+    # replay would hit an unknown command on startup.
+    command:
+      - redis-server
+      - --appendonly
+      - "yes"
+      - --rename-command
+      - FLUSHALL
+      - ""
+      - --rename-command
+      - FLUSHDB
+      - ""
     restart: unless-stopped
     networks:
       nova_network:

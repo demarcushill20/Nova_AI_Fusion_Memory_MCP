@@ -132,6 +132,39 @@ class SequenceService:
             logger.error(f"Failed to write counter file: {e}")
             raise
 
+    async def _guard_redis_regression(self, redis_val: int, count: int) -> int:
+        """Prevent the sequence counter from regressing below the durable
+        on-disk high-water mark after a Redis reset.
+
+        The file counter survives a Redis flush (e.g. a stray ``FLUSHALL`` on
+        a shared Redis instance); Redis does not. After a flush, ``INCR`` on
+        the now-missing key restarts at 1 — far below the true sequence
+        position already persisted in Pinecone. Trusting that value would
+        rewind the timeline and mint event_seq values that collide with
+        historical records.
+
+        If the lowest value in this allocation (``redis_val - count + 1``) is
+        at or below the file watermark, reseed Redis to ``watermark + count``
+        and return that, so the sequence stays strictly monotonic across a
+        flush. Returns the (possibly corrected) top-of-range value.
+        """
+        watermark = self._read_counter()
+        lowest = redis_val - count + 1
+        if lowest <= watermark:
+            corrected = watermark + count
+            try:
+                await self._redis.set(REDIS_SEQ_KEY, corrected)
+            except Exception as e:  # pragma: no cover - best-effort reseed
+                logger.warning(f"Failed to reseed Redis counter after regression: {e}")
+            logger.warning(
+                "Redis sequence counter regressed (allocated low=%s ≤ file "
+                "watermark %s) — Redis was likely flushed. Reseeded to %s to "
+                "preserve monotonicity and avoid event_seq collisions.",
+                lowest, watermark, corrected,
+            )
+            return corrected
+        return redis_val
+
     async def next_seq(self) -> int:
         """Return the next monotonic sequence number.
 
@@ -143,6 +176,7 @@ class SequenceService:
         if self._using_redis and self._redis:
             try:
                 val = await self._redis.incr(REDIS_SEQ_KEY)
+                val = await self._guard_redis_regression(val, count=1)
                 # Keep file in sync for fallback resilience
                 self._write_counter(val)
                 return val
@@ -177,6 +211,12 @@ class SequenceService:
                 for _ in range(count):
                     pipe.incr(REDIS_SEQ_KEY)
                 results = await pipe.execute()
+                # Guard against a Redis reset mid-batch: if the lowest value
+                # regressed below the durable file watermark, reissue the whole
+                # batch above it.
+                if results and results[0] <= self._read_counter():
+                    top = await self._guard_redis_regression(results[-1], count=count)
+                    results = list(range(top - count + 1, top + 1))
                 # Keep file in sync
                 self._write_counter(results[-1])
                 return results
